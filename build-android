@@ -1,0 +1,146 @@
+#!/bin/bash -x
+
+# DEPENDS:
+# * sudo
+# * util-linux
+# *rsync
+
+# VARIABLES:
+# BUILD_DIR=    (where the builds happen)
+# BUILD_TIME=   (the time that is part of the ANDROID_BUILD_TAG)
+# PRODUCT_NAME=
+# BUILD_VARIANT=      (user or userdebug or eng)
+# BUILD_TYPE=      (release or debug)
+# NUM_CORES=
+# SWAP_SIZE_MB=
+
+set -e
+
+if [ -z "$ALREADY_BIND_MOUNTED" ] ; then
+    mkdir -p "$BUILD_DIR" "$BUILD_DIR"/tmp
+    sudo -E -- unshare -m -- bash -c '
+      set -ex
+      builddir=$0
+      user=$1
+      script=$2
+      shift
+      shift
+      mountpoint /tmp && umount /tmp || true
+      mount --bind "$builddir"/tmp /tmp
+      tmpd="/tmp/android-build-$USER"
+      mkdir -p "$tmpd"
+      mount --bind "$builddir" "$tmpd"
+      export BUILD_DIR="$tmpd"
+      export ALREADY_BIND_MOUNTED=true
+      exec runuser -p -u "$user" -- "$script" "$@"
+      ' "$BUILD_DIR" "$USER" "${BASH_SOURCE[0]}" "$@"
+    ret=$?
+    exit $ret
+fi 
+
+mount
+
+test -f swapfile || {
+  echo "Making swapfile of $SWAP_SIZE_MB" >&2
+  dd if=/dev/zero of=swapfile bs=1M count="$SWAP_SIZE_MB"
+  mkswap swapfile
+}
+swapon -s | egrep -q '/swapfile\s+file' || {
+  echo "Activating swapfile" >&2
+  sudo chown root.root swapfile
+  sudo chmod 0600 swapfile
+  sudo swapon swapfile
+}
+
+rsync -av keys/ "$BUILD_DIR"/src/keys/
+
+cd "$BUILD_DIR"/src
+source build/envsetup.sh
+export LANG=C
+unset _JAVA_OPTIONS
+export BUILD_NUMBER="$BUILD_TIME"  # FIXME: make it possible to override this.
+export DISPLAY_BUILD_NUMBER=true
+chrt -b -p 0 $$
+choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
+
+make -j20 generate_verity_key
+out/host/linux-x86/bin/generate_verity_key -convert keys/"$PRODUCT_NAME"/verity.x509.pem keys/"$PRODUCT_NAME"/verity_key
+openssl x509 -outform der -in keys/"$PRODUCT_NAME"/verity.x509.pem -out kernel/google/"$PRODUCT_NAME"/verity_user.der.x509
+
+# Rekey Android F-Droid privileged extension with build keys.
+releasefp=$(
+keytool -list -printcert -file keys/"$PRODUCT_NAME"/releasekey.x509.pem | grep SHA256: | awk ' { print $2 } ' | sed 's/://g'
+)
+platformfp=$(
+keytool -list -printcert -file keys/"$PRODUCT_NAME"/platform.x509.pem | grep SHA256: | awk ' { print $2 } ' | sed 's/://g'
+)
+
+pushd packages/apps/F-Droid/privileged-extension
+git checkout app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
+sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate SHA-256 of https//f-droid.org/FDroid.apk\n            new Pair<>("org.fdroid.fdroid", "'$releasefp'"), // this build releasekey|g' app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
+sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate SHA-256 of https//f-droid.org/FDroid.apk\n            new Pair<>("org.fdroid.fdroid", "'$platformfp'"), // this build platform|g' app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
+popd
+# End rekey process.
+
+make target-files-package -j"$NUM_CORES"
+make -j20 brillo_update_payload
+
+# Here is release.sh, rewritten to fit this program.
+rm -rf out/release-*
+KEY_DIR=keys/"$PRODUCT_NAME"
+OUT=out/release-$PRODUCT_NAME-$BUILD_NUMBER
+mkdir -p $OUT
+
+source device/common/clear-factory-images-variables.sh
+
+get_radio_image() {
+  grep -Po "require version-$PRODUCT_NAME=\K.+" vendor/$2/vendor-board-info.txt | tr '[:upper:]' '[:lower:]'
+}
+
+if [[ $PRODUCT_NAME == bullhead ]]; then
+  BOOTLOADER=$(get_radio_image bootloader lge/$PRODUCT_NAME)
+  RADIO=$(get_radio_image baseband lge/$PRODUCT_NAME)
+elif [[ $PRODUCT_NAME == flounder ]]; then
+  BOOTLOADER=$(get_radio_image bootloader htc/$PRODUCT_NAME)
+elif [[ $PRODUCT_NAME == angler ]]; then
+  BOOTLOADER=$(get_radio_image bootloader huawei/$PRODUCT_NAME)
+  RADIO=$(get_radio_image baseband huawei/$PRODUCT_NAME)
+elif [[ $PRODUCT_NAME == marlin || $PRODUCT_NAME == sailfish ]]; then
+  BOOTLOADER=$(get_radio_image bootloader google_devices/$PRODUCT_NAME)
+  RADIO=$(get_radio_image baseband google_devices/$PRODUCT_NAME)
+else
+  echo "Unknown product name $PRODUCT_NAME" >&2
+  exit 16
+fi
+
+BUILD=$BUILD_NUMBER
+VERSION=$(grep -Po "export BUILD_ID=\K.+" build/core/build_id.mk | tr '[:upper:]' '[:lower:]')
+DEVICE=$PRODUCT_NAME
+PRODUCT=$PRODUCT_NAME
+
+TARGET_FILES=$PRODUCT_NAME-target_files-$BUILD_NUMBER.zip
+
+if [[ $PRODUCT_NAME == bullhead ]]; then
+  EXTRA_OTA=(-b device/lge/bullhead/update-binary)
+fi
+
+build/tools/releasetools/sign_target_files_apks -o -d "$KEY_DIR" \
+  --replace_verity_public_key "$KEY_DIR/verity_key.pub" --replace_verity_private_key "$KEY_DIR/verity" \
+  --replace_verity_keyid "$KEY_DIR/verity.x509.pem" \
+  out/target/product/$PRODUCT_NAME/obj/PACKAGING/target_files_intermediates/aosp_$PRODUCT_NAME-target_files-$BUILD_NUMBER.zip \
+  $OUT/$TARGET_FILES || exit 1
+
+build/tools/releasetools/ota_from_target_files --block -k "$KEY_DIR/releasekey" "${EXTRA_OTA[@]}" $OUT/$TARGET_FILES \
+  $OUT/$PRODUCT_NAME-ota_update-$BUILD_NUMBER.zip || exit 1
+
+build/tools/releasetools/img_from_target_files -n $OUT/$TARGET_FILES \
+  $OUT/$PRODUCT_NAME-img-$BUILD_NUMBER.zip || exit 1
+
+cd $OUT
+
+source ../../device/common/generate-factory-images-common.sh
+
+mv $PRODUCT_NAME-$VERSION-factory.tar $PRODUCT_NAME-factory-$BUILD_NUMBER.tar
+rm -f $PRODUCT_NAME-factory-$BUILD_NUMBER.tar.xz
+xz -v --lzma2=dict=512MiB,lc=3,lp=0,pb=2,mode=normal,nice=64,mf=bt4,depth=0 $PRODUCT_NAME-factory-$BUILD_NUMBER.tar
+# End of release.sh.

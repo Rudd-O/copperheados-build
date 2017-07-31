@@ -1,0 +1,40 @@
+#!/bin/bash
+
+# DEPENDS:
+# * git
+# * curl
+# * sudo
+# * util-linux
+
+# VARIABLES:
+# GIT_USER_EMAIL=    (email of packager)
+# GIT_USER_NAME=     (name of packager)
+# BUILD_DIR=         (where the builds happen)
+# ANDROID_BUILD_TAG= (BUILD_ID.BUILD_TIME)
+# GNUPGHOME=         (path to keyring directory where the already-imported keys reside)
+
+set -ex
+
+# Create build dir.
+test -d "$BUILD_DIR" || mkdir -p "$BUILD_DIR"
+
+# Obtain and deploy repo.
+if ! test -f "$BUILD_DIR"/bin/repo ; then 
+  mkdir -p "$BUILD_DIR"/bin
+  curl https://storage.googleapis.com/git-repo-downloads/repo > "$BUILD_DIR"/bin/repo
+  chmod a+x "$BUILD_DIR"/bin/repo
+fi
+export PATH="$BUILD_DIR"/bin:"$PATH"
+
+cd "$BUILD_DIR"
+mkdir -p src
+cd src
+echo y | repo init -u https://github.com/CopperheadOS/platform_manifest.git -b refs/tags/"$ANDROID_BUILD_TAG"
+
+cd .repo/manifests.git
+git verify-tag --raw $(git describe refs/tags/"$ANDROID_BUILD_TAG")
+cd ../..
+
+repo sync --force-sync -j8
+
+repo forall -c 'git verify-tag --raw $(git describe)' || { ret=$? ; echo Verification failed! ; exit $ret ; }

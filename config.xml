@@ -1,0 +1,98 @@
+<?xml version='1.0' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.12.1">
+  <actions/>
+  <description>Builds CopperheadOS images.</description>
+  <keepDependencies>false</keepDependencies>
+  <properties>
+    <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+      <triggers/>
+    </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
+  </properties>
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.36">
+    <script>node(&apos;master&apos;) {
+    stage(&apos;Copy from master&apos;) {
+        dir(&apos;..&apos;) {
+            stash includes: &apos;*-android&apos;, name: &quot;scripts&quot;
+            stash includes: &apos;gpgkeys/**&apos;, name: &quot;gpgkeys&quot;
+            stash includes: &apos;keys/**&apos;, name: &quot;keys&quot;
+        }
+    }
+}
+
+node(&apos;copperhead&apos;) {
+    stage(&apos;Copy to slave&apos;) {
+        unstash &quot;scripts&quot;
+        unstash &quot;gpgkeys&quot;
+        unstash &quot;keys&quot;
+    }
+    stage(&apos;Preparation&apos;) {
+        sh &apos;&apos;&apos;#!/bin/bash -e
+        packages=&quot;glibc.i686 libstdc++.i686 ncurses-compat-libs java-1.8.0-openjdk-devel m4 gcc&quot;
+        rpm -q $packages || sudo dnf install -y $packages
+        &apos;&apos;&apos;
+    }
+    stage(&apos;Configuration&apos;) {
+        env.PRODUCT_NAME = &apos;{{ android.devices[0] }}&apos;
+        env.CHANNEL_NAME = &apos;stable&apos;
+        env.BUILD_TYPE = &apos;release&apos; // release or debug
+        env.BUILD_VARIANT = &apos;user&apos; // user or userdebug or eng
+        env.GIT_USER_NAME = &apos;{{ android.git.user_name|je }}&apos;
+        env.GIT_USER_EMAIL = &apos;{{ android.git.user_email|je }}&apos;
+
+        env.NUM_CORES = &quot;3&quot;
+        env.SWAP_SIZE_MB = &quot;8192&quot;
+
+        env.BUILD_DIR = env.WORKSPACE + &quot;/build&quot;
+        env.GNUPGHOME = env.WORKSPACE + &quot;/gnupg&quot;
+        env.BUILD_ID = sh (
+            script: &apos;&apos;&apos;#!/bin/bash
+            read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_ID
+            &apos;&apos;&apos;,
+            returnStdout: true
+        ).trim()
+        env.BUILD_TIME = sh (
+            script: &apos;&apos;&apos;#!/bin/bash
+            read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
+            &apos;&apos;&apos;,
+            returnStdout: true
+        ).trim()
+        env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
+        
+        // Configure GnuPG with the keys.
+        sh &apos;&apos;&apos;#!/bin/bash -xe
+        rm -rf &quot;$GNUPGHOME&quot;
+        mkdir -p &quot;$GNUPGHOME&quot;
+        for file in &quot;$WORKSPACE&quot;/gpgkeys/* ; do
+            gpg --import &lt; &quot;$file&quot;
+        done
+        &apos;&apos;&apos;
+        
+        // Check that the Git configuration is correct.
+        sh &apos;&apos;&apos;#!/bin/bash -xe
+        g=$( git config --global user.name ) || true
+        if [ &quot;$g&quot; != &quot;$GIT_USER_NAME&quot; ]  ; then git config --global user.name &quot;$GIT_USER_NAME&quot; ; fi
+        g=$( git config --global user.email ) || true
+        if [ &quot;$g&quot; != &quot;$GIT_USER_EMAIL&quot; ] ; then git config --global user.name &quot;$GIT_USER_EMAIL&quot; ; fi
+        &apos;&apos;&apos;
+
+        // Make it possible to verify configuration by recording variables.
+        sh &quot;env&quot;
+    }
+    stage(&apos;Download&apos;) {
+        retry(5) {
+            sh &apos;./download-android&apos;
+        }
+    }
+    stage(&apos;Build&apos;) {
+        sh &apos;./build-android&apos;
+    }
+    stage(&apos;Archive&apos;) {
+        archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
+    }
+}
+</script>
+    <sandbox>true</sandbox>
+  </definition>
+  <triggers/>
+  <disabled>false</disabled>
+</flow-definition>
