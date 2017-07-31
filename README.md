@@ -7,6 +7,9 @@ based on the CopperheadOS release schedule, complete with fully compliant
 secure boot and anti-theft protection.
 
 This build recipe is based on [the official CopperheadOS build instructions](https://copperhead.co/android/docs/building).
+In addition to that, this executable recipe will automatically
+rekey F-Droid so F-Droid will have the ability to install applications
+as a trusted app store on your phone.  Quite excellent!
 
 ## How to use it
 
