@@ -16,29 +16,8 @@
 
 set -e
 
-if [ -z "$ALREADY_BIND_MOUNTED" ] ; then
-    mkdir -p "$BUILD_DIR" "$BUILD_DIR"/tmp
-    sudo -E -- unshare -m -- bash -c '
-      set -ex
-      builddir=$0
-      user=$1
-      script=$2
-      shift
-      shift
-      mountpoint /tmp && umount /tmp || true
-      mount --bind "$builddir"/tmp /tmp
-      tmpd="/tmp/android-build-$USER"
-      mkdir -p "$tmpd"
-      mount --bind "$builddir" "$tmpd"
-      export BUILD_DIR="$tmpd"
-      export ALREADY_BIND_MOUNTED=true
-      exec runuser -p -u "$user" -- "$script" "$@"
-      ' "$BUILD_DIR" "$USER" "${BASH_SOURCE[0]}" "$@"
-    ret=$?
-    exit $ret
-fi 
-
-mount
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$DIR"/bind-mount-dirs-android
 
 test -f swapfile || {
   echo "Making swapfile of $SWAP_SIZE_MB" >&2
