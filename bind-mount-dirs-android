@@ -26,7 +26,7 @@ if [ -z "$ALREADY_BIND_MOUNTED" ] ; then
       export BUILD_DIR="$tmpd"
       export ALREADY_BIND_MOUNTED=true
       exec runuser -p -u "$user" -- "$script" "$@"
-      ' "$BUILD_DIR" "$USER" "${BASH_SOURCE[0]}" "$@"
+      ' "$BUILD_DIR" "$USER" "${BASH_SOURCE[1]}" "$@"
     ret=$?
     exit $ret
 fi 
