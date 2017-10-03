@@ -1,0 +1,26 @@
+#!/bin/bash
+
+# DEPENDS:
+# * rsync
+
+# VARIABLES:
+# BUILD_DIR=       (build directory)
+# PRODUCT_NAME=    (name of device)
+# BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
+
+set -e
+
+DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
+source "$DIR"/bind-mount-dirs-android
+
+# Obtain Google official images
+if [[ $PRODUCT_NAME == hikey* ]]; then
+  true
+else
+  cd "$BUILD_DIR"/src
+  vendor/android-prepare-vendor/execute-all.sh -d "$PRODUCT_NAME" -b "$BUILD_ID" -o vendor/android-prepare-vendor
+  mkdir -p vendor/google_devices
+  rsync -av --delete \
+     vendor/android-prepare-vendor/"$PRODUCT_NAME"/"$BUILD_ID"/vendor/google_devices/"$PRODUCT_NAME"/ \
+     vendor/google_devices/"$PRODUCT_NAME"
+fi

@@ -78,9 +78,14 @@ node(&apos;copperhead&apos;) {
         // Make it possible to verify configuration by recording variables.
         sh &quot;env&quot;
     }
-    stage(&apos;Download&apos;) {
+    stage(&apos;Download sources&apos;) {
         retry(5) {
             sh &apos;./download-android&apos;
+        }
+    }
+    stage(&apos;Download factory images&apos;) {
+        retry(2) {
+            sh &apos;./download-factory-android&apos;
         }
     }
     stage(&apos;Build&apos;) {
