@@ -28,7 +28,7 @@ node(&apos;copperhead&apos;) {
     stage(&apos;Preparation&apos;) {
         sh &apos;&apos;&apos;#!/bin/bash -e
         packages=&quot;glibc.i686 libstdc++.i686 ncurses-compat-libs java-1.8.0-openjdk-devel m4 gcc&quot;
-        rpm -q $packages || sudo dnf install -y $packages
+        rpm -q $packages || sudo dnf install --disablerepo=*qubes* -y $packages
         &apos;&apos;&apos;
     }
     stage(&apos;Configuration&apos;) {
