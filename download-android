@@ -14,6 +14,7 @@
 # GNUPGHOME=         (path to keyring directory where the already-imported keys reside)
 
 set -ex
+export DISPLAY=
 
 # Create build dir.
 test -d "$BUILD_DIR" || mkdir -p "$BUILD_DIR"
