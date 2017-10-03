@@ -99,6 +99,10 @@ PRODUCT=$PRODUCT_NAME
 
 TARGET_FILES=$PRODUCT_NAME-target_files-$BUILD_NUMBER.zip
 
+if [[ $DEVICE != hikey*  ]]; then
+  VERITY_SWITCHES=(--replace_verity_public_key "$KEY_DIR/verity_key.pub" --replace_verity_private_key "$KEY_DIR/verity" --replace_verity_keyid "$KEY_DIR/verity.x509.pem")
+fi
+
 if [[ $PRODUCT_NAME == bullhead ]]; then
   EXTRA_OTA=(-b device/lge/bullhead/update-binary)
 fi
@@ -117,7 +121,11 @@ build/tools/releasetools/img_from_target_files -n $OUT/$TARGET_FILES \
 
 cd $OUT
 
-source ../../device/common/generate-factory-images-common.sh
+if [[ $DEVICE == hikey* ]]; then
+  source ../../device/linaro/hikey/factory-images/generate-factory-images-$DEVICE.sh
+else
+  source ../../device/common/generate-factory-images-common.sh
+fi
 
 mv $PRODUCT_NAME-$VERSION-factory.tar $PRODUCT_NAME-factory-$BUILD_NUMBER.tar
 rm -f $PRODUCT_NAME-factory-$BUILD_NUMBER.tar.xz
