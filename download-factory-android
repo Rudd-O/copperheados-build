@@ -25,4 +25,7 @@ else
   rsync -av --delete \
      vendor/android-prepare-vendor/"$PRODUCT_NAME"/"$lowerbuildid"/vendor/google_devices/"$PRODUCT_NAME"/ \
      vendor/google_devices/"$PRODUCT_NAME"
+  pushd vendor/android-prepare-vendor
+  git clean -fxd
+  popd
 fi
