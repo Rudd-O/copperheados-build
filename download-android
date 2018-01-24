@@ -30,6 +30,14 @@ export PATH="$BUILD_DIR"/bin:"$PATH"
 cd "$BUILD_DIR"
 mkdir -p src
 cd src
+
+if test -d packages/apps/F-Droid/privileged-extension ; then
+  pushd packages/apps/F-Droid/privileged-extension
+  git clean -fxd
+  git reset --hard HEAD
+  popd
+fi
+
 echo y | repo init -u https://github.com/CopperheadOS/platform_manifest.git -b refs/tags/"$ANDROID_BUILD_TAG"
 
 cd .repo/manifests.git
