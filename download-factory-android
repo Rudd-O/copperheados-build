@@ -25,6 +25,11 @@ else
   rsync -av --delete \
      vendor/android-prepare-vendor/"$PRODUCT_NAME"/"$lowerbuildid"/vendor/google_devices/"$PRODUCT_NAME"/ \
      vendor/google_devices/"$PRODUCT_NAME"
+  if [[ $PRODUCT_NAME == sailfish ]]; then
+     rsync -av --delete \
+        vendor/android-prepare-vendor/sailfish/"$lowerbuildid"/vendor/google_devices/"$PRODUCT_NAME"/ \
+        vendor/google_devices/"$PRODUCT_NAME"
+  fi
   pushd vendor/android-prepare-vendor
   git clean -fxd
   popd

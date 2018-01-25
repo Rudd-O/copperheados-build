@@ -7,7 +7,6 @@
 
 # VARIABLES:
 # BUILD_DIR=    (where the builds happen)
-# BUILD_TIME=   (the time that is part of the ANDROID_BUILD_TAG)
 # PRODUCT_NAME=
 # BUILD_VARIANT=      (user or userdebug or eng)
 # BUILD_TYPE=      (release or debug)
@@ -34,17 +33,32 @@ swapon -s | egrep -q '/swapfile\s+file' || {
 rsync -av keys/ "$BUILD_DIR"/src/keys/
 
 cd "$BUILD_DIR"/src
-source build/envsetup.sh
-export LANG=C
-unset _JAVA_OPTIONS
-export BUILD_NUMBER="$BUILD_TIME"  # FIXME: make it possible to override this.
-export DISPLAY_BUILD_NUMBER=true
-chrt -b -p 0 $$
+source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
 
 make -j20 generate_verity_key
-out/host/linux-x86/bin/generate_verity_key -convert keys/"$PRODUCT_NAME"/verity.x509.pem keys/"$PRODUCT_NAME"/verity_key
-openssl x509 -outform der -in keys/"$PRODUCT_NAME"/verity.x509.pem -out kernel/google/"$PRODUCT_NAME"/verity_user.der.x509
+if [ "$PRODUCT_NAME" == "taimen" ] ; then
+  pushd keys/"$PRODUCT_NAME"
+  for key in avb.pem media.pk8 media.x509.pem platform.pk8 platform.x509.pem releasekey.pk8 releasekey.x509.pem shared.pk8 shared.x509.pem ; do
+    test -f $key || {
+      echo "keys/$PRODUCT_NAME/$key cannot be found, generate it as per Android Verified Boot 2.0 CopperheadOS build instructions and place it in the build's keys/$PRODUCT_NAME directory, then retry" >&2
+      exit 32
+    }
+  done
+  ../../external/avb/avbtool extract_public_key --key avb.pem --output avb_pkmd.bin
+  popd
+else
+  pushd keys/"$PRODUCT_NAME"
+  for key in media.pk8 media.x509.pem platform.pk8 platform.x509.pem releasekey.pk8 releasekey.x509.pem shared.pk8 shared.x509.pem verity.pk8 verity.x509.pem ; do
+    test -f $key || {
+      echo "keys/$PRODUCT_NAME/$key cannot be found, generate it as per Android Verified Boot 1.x CopperheadOS build instructions and place it in the build's keys/$PRODUCT_NAME directory, then retry" >&2
+      exit 32
+    }
+  done
+  popd
+  out/host/linux-x86/bin/generate_verity_key -convert keys/"$PRODUCT_NAME"/verity.x509.pem keys/"$PRODUCT_NAME"/verity_key
+  openssl x509 -outform der -in keys/"$PRODUCT_NAME"/verity.x509.pem -out kernel/google/"$PRODUCT_NAME"/verity_user.der.x509
+fi
 
 # Rekey Android F-Droid privileged extension with build keys.
 releasefp=$(
@@ -62,31 +76,40 @@ popd
 # End rekey process.
 
 make target-files-package -j"$NUM_CORES"
-make -j20 brillo_update_payload
+
+if [ "$PRODUCT_NAME" == "sailfish" -o "$PRODUCT_NAME" == "marlin" ] ; then
+  make -j20 brillo_update_payload
+fi
+if [[ $PRODUCT_NAME != hikey*  ]]; then
+  make -j20 dumpkey
+fi
 
 # Here is release.sh, rewritten to fit this program.
 rm -rf out/release-*
 KEY_DIR=keys/"$PRODUCT_NAME"
-OUT=out/release-$PRODUCT_NAME-$BUILD_NUMBER
-mkdir -p $OUT
+OUT=out/release-"$PRODUCT_NAME-$BUILD_NUMBER"
+mkdir -p "$OUT"
 
 source device/common/clear-factory-images-variables.sh
 
 get_radio_image() {
-  grep -Po "require version-$PRODUCT_NAME=\K.+" vendor/$2/vendor-board-info.txt | tr '[:upper:]' '[:lower:]'
+  grep -Po "require version-$1=\K.+" vendor/$2/vendor-board-info.txt | tr '[:upper:]' '[:lower:]'
 }
 
 if [[ $PRODUCT_NAME == bullhead ]]; then
   BOOTLOADER=$(get_radio_image bootloader lge/$PRODUCT_NAME)
   RADIO=$(get_radio_image baseband lge/$PRODUCT_NAME)
-elif [[ $PRODUCT_NAME == flounder ]]; then
-  BOOTLOADER=$(get_radio_image bootloader htc/$PRODUCT_NAME)
+  PREFIX=aosp_
 elif [[ $PRODUCT_NAME == angler ]]; then
   BOOTLOADER=$(get_radio_image bootloader huawei/$PRODUCT_NAME)
   RADIO=$(get_radio_image baseband huawei/$PRODUCT_NAME)
-elif [[ $PRODUCT_NAME == marlin || $PRODUCT_NAME == sailfish ]]; then
+  PREFIX=aosp_
+elif [[ $PRODUCT_NAME == marlin || $PRODUCT_NAME == sailfish || $PRODUCT_NAME == taimen || $PRODUCT_NAME == walleye ]]; then
   BOOTLOADER=$(get_radio_image bootloader google_devices/$PRODUCT_NAME)
   RADIO=$(get_radio_image baseband google_devices/$PRODUCT_NAME)
+  PREFIX=aosp_
+elif [[ $PRODUCT_NAME == hikey || $PRODUCT_NAME == hikey960 ]]; then
+  :
 else
   echo "Unknown product name $PRODUCT_NAME" >&2
   exit 16
@@ -99,27 +122,32 @@ PRODUCT=$PRODUCT_NAME
 
 TARGET_FILES=$PRODUCT_NAME-target_files-$BUILD_NUMBER.zip
 
-if [[ $DEVICE != hikey*  ]]; then
-  VERITY_SWITCHES=(--replace_verity_public_key "$KEY_DIR/verity_key.pub" --replace_verity_private_key "$KEY_DIR/verity" --replace_verity_keyid "$KEY_DIR/verity.x509.pem")
+if [[ $DEVICE != hikey* ]]; then
+  if [[ $DEVICE != taimen && $DEVICE != walleye ]]; then
+    VERITY_SWITCHES=(--replace_verity_public_key "$KEY_DIR/verity_key.pub" --replace_verity_private_key "$KEY_DIR/verity"
+                     --replace_verity_keyid "$KEY_DIR/verity.x509.pem")
+  else
+    VERITY_SWITCHES=(--avb_vbmeta_key "$KEY_DIR/avb.pem" --avb_vbmeta_algorithm SHA256_RSA2048)
+  fi
 fi
 
-if [[ $PRODUCT_NAME == bullhead ]]; then
+if [[ $DEVICE == bullhead ]]; then
   EXTRA_OTA=(-b device/lge/bullhead/update-binary)
 fi
 
-build/tools/releasetools/sign_target_files_apks -o -d "$KEY_DIR" \
-  --replace_verity_public_key "$KEY_DIR/verity_key.pub" --replace_verity_private_key "$KEY_DIR/verity" \
-  --replace_verity_keyid "$KEY_DIR/verity.x509.pem" \
-  out/target/product/$PRODUCT_NAME/obj/PACKAGING/target_files_intermediates/aosp_$PRODUCT_NAME-target_files-$BUILD_NUMBER.zip \
-  $OUT/$TARGET_FILES || exit 1
+build/tools/releasetools/sign_target_files_apks -o -d "$KEY_DIR" "${VERITY_SWITCHES[@]}" \
+  out/target/product/$DEVICE/obj/PACKAGING/target_files_intermediates/$PREFIX$DEVICE-target_files-$BUILD_NUMBER.zip \
+  "$OUT"/$TARGET_FILES || exit 1
 
-build/tools/releasetools/ota_from_target_files --block -k "$KEY_DIR/releasekey" "${EXTRA_OTA[@]}" $OUT/$TARGET_FILES \
-  $OUT/$PRODUCT_NAME-ota_update-$BUILD_NUMBER.zip || exit 1
+if [[ $DEVICE != hikey* ]]; then
+  build/tools/releasetools/ota_from_target_files --block -k "$KEY_DIR/releasekey" "${EXTRA_OTA[@]}" "$OUT"/$TARGET_FILES \
+    "$OUT"/$DEVICE-ota_update-$BUILD.zip || exit 1
+fi
 
-build/tools/releasetools/img_from_target_files -n $OUT/$TARGET_FILES \
-  $OUT/$PRODUCT_NAME-img-$BUILD_NUMBER.zip || exit 1
+build/tools/releasetools/img_from_target_files -n "$OUT"/$TARGET_FILES \
+  "$OUT"/$DEVICE-img-$BUILD.zip || exit 1
 
-cd $OUT
+cd "$OUT" || exit 1
 
 if [[ $DEVICE == hikey* ]]; then
   source ../../device/linaro/hikey/factory-images/generate-factory-images-$DEVICE.sh
@@ -127,7 +155,7 @@ else
   source ../../device/common/generate-factory-images-common.sh
 fi
 
-mv $PRODUCT_NAME-$VERSION-factory.tar $PRODUCT_NAME-factory-$BUILD_NUMBER.tar
-rm -f $PRODUCT_NAME-factory-$BUILD_NUMBER.tar.xz
-xz -v --lzma2=dict=512MiB,lc=3,lp=0,pb=2,mode=normal,nice=64,mf=bt4,depth=0 $PRODUCT_NAME-factory-$BUILD_NUMBER.tar
+mv $DEVICE-$VERSION-factory.tar $DEVICE-factory-$BUILD_NUMBER.tar
+rm -f $DEVICE-factory-$BUILD_NUMBER.tar.xz
+xz -v --lzma2=dict=512MiB,lc=3,lp=0,pb=2,mode=normal,nice=64,mf=bt4,depth=0 $DEVICE-factory-$BUILD_NUMBER.tar
 # End of release.sh.
