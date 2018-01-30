@@ -43,6 +43,6 @@ cd .repo/manifests.git
 git verify-tag --raw $(git describe refs/tags/"$ANDROID_BUILD_TAG")
 cd ../..
 
-repo sync --force-sync -j8
+repo sync --force-sync -j16
 
 repo forall -c 'git verify-tag --raw $(git describe)' || { ret=$? ; echo Verification failed! ; exit $ret ; }
