@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -xe
 
 # DEPENDS:
 # * git
@@ -13,7 +13,6 @@
 # ANDROID_BUILD_TAG= (BUILD_ID.BUILD_TIME)
 # GNUPGHOME=         (path to keyring directory where the already-imported keys reside)
 
-set -ex
 export DISPLAY=
 
 # Create build dir.

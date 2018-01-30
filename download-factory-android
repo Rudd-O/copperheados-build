@@ -1,4 +1,4 @@
-#!/bin/bash
+#!/bin/bash -xe
 
 # DEPENDS:
 # * rsync
@@ -8,8 +8,6 @@
 # BUILD_DIR=       (build directory)
 # PRODUCT_NAME=    (name of device)
 # BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
-
-set -e
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$DIR"/bind-mount-dirs-android
