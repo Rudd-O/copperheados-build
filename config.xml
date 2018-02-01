@@ -29,6 +29,7 @@ node(&apos;copperhead&apos;) {
         sh &apos;&apos;&apos;#!/bin/bash -e
         packages=&quot;glibc.i686 libstdc++.i686 ncurses-compat-libs java-1.8.0-openjdk-devel m4 gcc&quot;
         rpm -q $packages || sudo dnf install --disablerepo=*qubes* -y $packages
+        ./swapfile-android
         &apos;&apos;&apos;
     }
     stage(&apos;Configuration&apos;) {
@@ -39,8 +40,7 @@ node(&apos;copperhead&apos;) {
         env.GIT_USER_NAME = &apos;{{ android.git.user_name|je }}&apos;
         env.GIT_USER_EMAIL = &apos;{{ android.git.user_email|je }}&apos;
 
-        env.NUM_CORES = &quot;3&quot;
-        env.SWAP_SIZE_MB = &quot;8192&quot;
+        env.NUM_CORES = &quot;4&quot;
 
         env.BUILD_DIR = env.WORKSPACE + &quot;/build&quot;
         env.GNUPGHOME = env.WORKSPACE + &quot;/gnupg&quot;
@@ -90,6 +90,9 @@ node(&apos;copperhead&apos;) {
     }
     stage(&apos;Build&apos;) {
         sh &apos;./build-android&apos;
+    }
+    stage(&apos;Release&apos;) {
+        sh &apos;./release-android&apos;
     }
     stage(&apos;Archive&apos;) {
         archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
