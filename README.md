@@ -13,10 +13,14 @@ as a trusted app store on your phone.  Quite excellent!
 
 ## How to use it
 
-Create a Jenkins job directory for your build, under the Jenkins `jobs` folder.
+Install the Jenkins Pipeline plugin on your Jenkins instance.
 
-Place the `config.xml` file, along with the other files in this
-repository, there.  Preserve the directory structure.
+Make a copy of the the `config.xml.j2` file and name it `config.xml`.
+
+Create a Jenkins job directory for your build under the Jenkins `jobs` folder.
+
+Place all files in this repository into that Jenkins `jobs` subfolder.
+Preserve the directory structure.
 
 Open the `config.xml` file and look for the string `{{`.  Substitute your
 preferred values for every instance of `{{ ... }}` that you find there.
