@@ -24,11 +24,11 @@ else
   mkdir -p vendor/google_devices
   rsync -a --delete \
      vendor/android-prepare-vendor/"$PRODUCT_NAME"/"$lowerbuildid"/vendor/google_devices/"$PRODUCT_NAME"/ \
-     vendor/google_devices/"$PRODUCT_NAME"
+     vendor/google_devices/"$PRODUCT_NAME"/
   if [[ $PRODUCT_NAME == sailfish ]]; then
      rsync -a --delete \
-        vendor/android-prepare-vendor/sailfish/"$lowerbuildid"/vendor/google_devices/"$PRODUCT_NAME"/ \
-        vendor/google_devices/"$PRODUCT_NAME"
+        vendor/android-prepare-vendor/"$PRODUCT_NAME"/"$lowerbuildid"/vendor/google_devices/marlin/ \
+        vendor/google_devices/marlin/
   fi
   # Clear out anything that was unpacked under android-prepare-vendor.
   rm -rf vendor/android-prepare-vendor/*/*/vendor*
