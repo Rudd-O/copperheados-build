@@ -15,12 +15,14 @@ as a trusted app store on your phone.  Quite excellent!
 
 Install the Jenkins Pipeline plugin on your Jenkins instance.
 
-Make a copy of the the `config.xml.j2` file and name it `config.xml`.
+Copy the directory containing this file, exactly as-is, into the Jenkins
+`jobs` folder.  For example, if your Jenkins `jobs` folder path is
+`/var/lib/jenkins/jobs`, then you'd copy this folder so that the copy
+ends up at `/var/lib/jenkins/jobs/copperheados-build`.  If you'd like,
+rename it afterwards, so it isn't named `copperheados-build`.
 
-Create a Jenkins job directory for your build under the Jenkins `jobs` folder.
-
-Place all files in this repository into that Jenkins `jobs` subfolder.
-Preserve the directory structure.
+Inside the newly-created directory, make a copy of the the `config.xml.j2`
+file and name it `config.xml`.
 
 Open the `config.xml` file and look for the string `{{`.  Substitute your
 preferred values for every instance of `{{ ... }}` that you find there.
@@ -47,7 +49,8 @@ device variant / product name):
 
 --------------------------------------------------------------------------
 
-Place those keys in the `keys/<product name>` folder under the job directory.
+Place those keys in the `keys/<product name>` folder under the job directory
+you created below the Jenkins `jobs` folder.
 
 Ensure all files and folders under this job directory are owned by Jenkins
 and only readable by it.
@@ -57,6 +60,6 @@ and 200 GB disk space available.  Give that build slave the label `copperhead`.
 Alternatively, change the `node(copperhead)` snippet in `config.xml`
 to run it on any slave (see the Jenkins Pipeline reference documentation).
 
-Restart your Jenkins instance.
+Restart or reload your Jenkins instance.
 
 You're now ready to go.  Build!
