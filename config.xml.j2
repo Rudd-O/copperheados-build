@@ -85,138 +85,153 @@
     </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
   </properties>
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.45">
-    <script>node(&apos;master&apos;) {
-    stage(&apos;Copy from master&apos;) {
-        dir(&apos;..&apos;) {
-            stash includes: &apos;*-android&apos;, name: &quot;scripts&quot;
-            stash includes: &apos;gpgkeys/**&apos;, name: &quot;gpgkeys&quot;
-            stash includes: &apos;keys/**&apos;, name: &quot;keys&quot;
+    <script>try {
+    node(&apos;master&apos;) {
+        stage(&apos;Copy from master&apos;) {
+            dir(&apos;..&apos;) {
+                stash includes: &apos;*-android&apos;, name: &quot;scripts&quot;
+                stash includes: &apos;gpgkeys/**&apos;, name: &quot;gpgkeys&quot;
+                stash includes: &apos;keys/**&apos;, name: &quot;keys&quot;
+            }
         }
-    }
-    stage(&apos;Configuration&apos;) {
-        timeout(time: 15, unit: &apos;MINUTES&apos;) {
-            env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
-            env.BUILD_ID = sh (
-                script: &apos;&apos;&apos;#!/bin/bash -e
-                data=$(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;)
-                echo &quot;Data retrieved from release API:&quot; &gt;&amp;2
-                echo &quot;$data&quot; &gt;&amp;2
-                read BUILD_TIME MEH BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $BUILD_ID
-                &apos;&apos;&apos;,
-                returnStdout: true
-            ).trim()
-            env.BUILD_TIME = sh (
-                script: &apos;&apos;&apos;#!/bin/bash -e
-                read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
-                &apos;&apos;&apos;,
-                returnStdout: true
-            ).trim()
-            env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
-            // ANDROID_BUILD_SPEC is not used during the build process,
-            // only to reason about whether a rebuild is needed.
-            env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
-            env.LAST_ANDROID_BUILD_TAG_FOR_SPEC = sh(
-                script: &apos;&apos;&apos;#!/bin/bash
-                cat last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
-                exit 0
-                &apos;&apos;&apos;,
-                returnStdout: true
-            ).trim()
-        }
-    }
-}
-
-if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
-    currentBuild.result = &apos;SUCCESS&apos;
-    currentBuild.description = &quot;Skipped build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
-    println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
-    return
-} else {
-    currentBuild.description = &quot;Build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
-    println &quot;Last successful build tag ${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for ${env.ANDROID_BUILD_SPEC} differs from current build spec ${env.ANDROID_BUILD_TAG}.  Continuing.&quot;
-}
-
-node(&apos;copperhead&apos;) {
-    stage(&apos;Copy to slave&apos;) {
-        unstash &quot;scripts&quot;
-        unstash &quot;gpgkeys&quot;
-        unstash &quot;keys&quot;
-    }
-    stage(&apos;Preparation&apos;) {
-        sh &apos;&apos;&apos;#!/bin/bash -e
-        packages=&quot;glibc.i686 libstdc++.i686 ncurses-compat-libs java-1.8.0-openjdk-devel m4 gcc&quot;
-        rpm -q $packages || sudo dnf install --disablerepo=*qubes* -y $packages
-        ./swapfile-android
-        &apos;&apos;&apos;
-
-        env.BUILD_DIR = env.WORKSPACE + &quot;/build&quot;
-        env.GNUPGHOME = env.WORKSPACE + &quot;/gnupg&quot;
-
-        // Configure GnuPG with the keys.
-        sh &apos;&apos;&apos;#!/bin/bash -xe
-        rm -rf &quot;$GNUPGHOME&quot;
-        mkdir -p &quot;$GNUPGHOME&quot;
-        for file in &quot;$WORKSPACE&quot;/gpgkeys/* ; do
-            gpg --import &lt; &quot;$file&quot;
-        done
-        &apos;&apos;&apos;
-        
-        // Check that the Git configuration is correct.
-        sh &apos;&apos;&apos;#!/bin/bash -xe
-        g=$( git config --global user.name ) || true
-        if [ &quot;$g&quot; != &quot;$GIT_USER_NAME&quot; ]  ; then git config --global user.name &quot;$GIT_USER_NAME&quot; ; fi
-        g=$( git config --global user.email ) || true
-        if [ &quot;$g&quot; != &quot;$GIT_USER_EMAIL&quot; ] ; then git config --global user.name &quot;$GIT_USER_EMAIL&quot; ; fi
-        &apos;&apos;&apos;
-
-        // Make it possible to verify configuration by recording variables.
-        sh &quot;env | sort&quot;
-    }
-    stage(&apos;Download sources&apos;) {
-        timeout(time: 2, unit: &apos;HOURS&apos;) {
-            retry(5) {
-                sh &apos;./download-android&apos;
+        stage(&apos;Configuration&apos;) {
+            timeout(time: 15, unit: &apos;MINUTES&apos;) {
+                env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
+                env.BUILD_ID = sh (
+                    script: &apos;&apos;&apos;#!/bin/bash -e
+                    data=$(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;)
+                    echo &quot;Data retrieved from release API:&quot; &gt;&amp;2
+                    echo &quot;$data&quot; &gt;&amp;2
+                    read BUILD_TIME MEH BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $BUILD_ID
+                    &apos;&apos;&apos;,
+                    returnStdout: true
+                ).trim()
+                env.BUILD_TIME = sh (
+                    script: &apos;&apos;&apos;#!/bin/bash -e
+                    read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
+                    &apos;&apos;&apos;,
+                    returnStdout: true
+                ).trim()
+                env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
+                // ANDROID_BUILD_SPEC is not used during the build process,
+                // only to reason about whether a rebuild is needed.
+                env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
+                env.LAST_ANDROID_BUILD_TAG_FOR_SPEC = sh(
+                    script: &apos;&apos;&apos;#!/bin/bash
+                    cat last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
+                    exit 0
+                    &apos;&apos;&apos;,
+                    returnStdout: true
+                ).trim()
             }
         }
     }
-    stage(&apos;Download factory images&apos;) {
-        timeout(time: 1, unit: &apos;HOURS&apos;) {
-            retry(2) {
-                sh &apos;./download-factory-android&apos;
+
+    if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
+        currentBuild.result = &apos;SUCCESS&apos;
+        currentBuild.description = &quot;Skipped build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
+        println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
+        return
+    } else {
+        currentBuild.description = &quot;Build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
+        println &quot;Last successful build tag ${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for ${env.ANDROID_BUILD_SPEC} differs from current build spec ${env.ANDROID_BUILD_TAG}.  Continuing.&quot;
+    }
+
+    node(&apos;copperhead&apos;) {
+        stage(&apos;Copy to slave&apos;) {
+            unstash &quot;scripts&quot;
+            unstash &quot;gpgkeys&quot;
+            unstash &quot;keys&quot;
+        }
+        stage(&apos;Preparation&apos;) {
+            sh &apos;&apos;&apos;#!/bin/bash -e
+            packages=&quot;glibc.i686 libstdc++.i686 ncurses-compat-libs java-1.8.0-openjdk-devel m4 gcc&quot;
+            rpm -q $packages || sudo dnf install --disablerepo=*qubes* -y $packages
+            ./swapfile-android
+            &apos;&apos;&apos;
+
+            env.BUILD_DIR = env.WORKSPACE + &quot;/build&quot;
+            env.GNUPGHOME = env.WORKSPACE + &quot;/gnupg&quot;
+
+            // Configure GnuPG with the keys.
+            sh &apos;&apos;&apos;#!/bin/bash -xe
+            rm -rf &quot;$GNUPGHOME&quot;
+            mkdir -p &quot;$GNUPGHOME&quot;
+            for file in &quot;$WORKSPACE&quot;/gpgkeys/* ; do
+                gpg --import &lt; &quot;$file&quot;
+            done
+            &apos;&apos;&apos;
+
+            // Check that the Git configuration is correct.
+            sh &apos;&apos;&apos;#!/bin/bash -xe
+            g=$( git config --global user.name ) || true
+            if [ &quot;$g&quot; != &quot;$GIT_USER_NAME&quot; ]  ; then git config --global user.name &quot;$GIT_USER_NAME&quot; ; fi
+            g=$( git config --global user.email ) || true
+            if [ &quot;$g&quot; != &quot;$GIT_USER_EMAIL&quot; ] ; then git config --global user.name &quot;$GIT_USER_EMAIL&quot; ; fi
+            &apos;&apos;&apos;
+
+            // Make it possible to verify configuration by recording variables.
+            sh &quot;env | sort&quot;
+        }
+        stage(&apos;Download sources&apos;) {
+            timeout(time: 2, unit: &apos;HOURS&apos;) {
+                retry(5) {
+                    sh &apos;./download-android&apos;
+                }
             }
         }
-    }
-    stage(&apos;Clean&apos;) {
-        currentBuild.description = sh(
-            script: &apos;&apos;&apos;#!/bin/bash -e
-            ./clean-android
-            &apos;&apos;&apos;,
-            returnStdout: true
-        ).trim() + &quot; of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
-    }
-    stage(&apos;Build&apos;) {
-        timeout(time: 10, unit: &apos;HOURS&apos;) {
-            sh &apos;./build-android&apos;
+        stage(&apos;Download factory images&apos;) {
+            timeout(time: 1, unit: &apos;HOURS&apos;) {
+                retry(2) {
+                    sh &apos;./download-factory-android&apos;
+                }
+            }
+        }
+        stage(&apos;Clean&apos;) {
+            currentBuild.description = sh(
+                script: &apos;&apos;&apos;#!/bin/bash -e
+                ./clean-android
+                &apos;&apos;&apos;,
+                returnStdout: true
+            ).trim() + &quot; of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
+        }
+        stage(&apos;Build&apos;) {
+            timeout(time: 10, unit: &apos;HOURS&apos;) {
+                sh &apos;./build-android&apos;
+            }
+        }
+        stage(&apos;Release&apos;) {
+            timeout(time: 1, unit: &apos;HOURS&apos;) {
+                sh &apos;./release-android&apos;
+            }
+        }
+        stage(&apos;Archive&apos;) {
+            archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
         }
     }
-    stage(&apos;Release&apos;) {
-        timeout(time: 1, unit: &apos;HOURS&apos;) {
-            sh &apos;./release-android&apos;
-        }
-    }
-    stage(&apos;Archive&apos;) {
-        archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
-    }
-}
 
-node(&apos;master&apos;) {
-    stage(&apos;Remember last build spec&apos;) {
+    node(&apos;master&apos;) {
+        stage(&apos;Remember last build spec&apos;) {
+            sh &apos;&apos;&apos;#!/bin/bash
+            echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
+            &apos;&apos;&apos;
+        }
         sh &apos;&apos;&apos;#!/bin/bash
-        echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
+        if [ -x /usr/local/bin/announce-build-result ] ; then
+            /usr/local/bin/announce-build-result finished.
+        fi
         &apos;&apos;&apos;
     }
-}
-</script>
+} catch(e) {
+    node(&apos;master&apos;) {
+        currentBuild.result = &apos;FAILURE&apos;
+        sh &apos;&apos;&apos;#!/bin/bash
+        if [ -x /usr/local/bin/announce-build-result ] ; then
+            /usr/local/bin/announce-build-result failed.
+        fi
+        &apos;&apos;&apos;
+    }
+}</script>
     <sandbox>true</sandbox>
   </definition>
   <triggers/>
