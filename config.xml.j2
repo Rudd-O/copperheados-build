@@ -94,33 +94,35 @@
         }
     }
     stage(&apos;Configuration&apos;) {
-        env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
-        env.BUILD_ID = sh (
-            script: &apos;&apos;&apos;#!/bin/bash -e
-            data=$(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;)
-            echo &quot;Data retrieved from release API:&quot; &gt;&amp;2
-            echo &quot;$data&quot; &gt;&amp;2
-            read BUILD_TIME MEH BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $BUILD_ID
-            &apos;&apos;&apos;,
-            returnStdout: true
-        ).trim()
-        env.BUILD_TIME = sh (
-            script: &apos;&apos;&apos;#!/bin/bash -e
-            read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
-            &apos;&apos;&apos;,
-            returnStdout: true
-        ).trim()
-        env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
-        // ANDROID_BUILD_SPEC is not used during the build process,
-        // only to reason about whether a rebuild is needed.
-        env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
-        env.LAST_ANDROID_BUILD_TAG_FOR_SPEC = sh(
-            script: &apos;&apos;&apos;#!/bin/bash
-            cat last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
-            exit 0
-            &apos;&apos;&apos;,
-            returnStdout: true
-        ).trim()
+        timeout(time: 15, unit: &apos;MINUTES&apos;) {
+            env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
+            env.BUILD_ID = sh (
+                script: &apos;&apos;&apos;#!/bin/bash -e
+                data=$(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;)
+                echo &quot;Data retrieved from release API:&quot; &gt;&amp;2
+                echo &quot;$data&quot; &gt;&amp;2
+                read BUILD_TIME MEH BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $BUILD_ID
+                &apos;&apos;&apos;,
+                returnStdout: true
+            ).trim()
+            env.BUILD_TIME = sh (
+                script: &apos;&apos;&apos;#!/bin/bash -e
+                read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
+                &apos;&apos;&apos;,
+                returnStdout: true
+            ).trim()
+            env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
+            // ANDROID_BUILD_SPEC is not used during the build process,
+            // only to reason about whether a rebuild is needed.
+            env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
+            env.LAST_ANDROID_BUILD_TAG_FOR_SPEC = sh(
+                script: &apos;&apos;&apos;#!/bin/bash
+                cat last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
+                exit 0
+                &apos;&apos;&apos;,
+                returnStdout: true
+            ).trim()
+        }
     }
 }
 
@@ -171,13 +173,17 @@ node(&apos;copperhead&apos;) {
         sh &quot;env | sort&quot;
     }
     stage(&apos;Download sources&apos;) {
-        retry(5) {
-            sh &apos;./download-android&apos;
+        timeout(time: 2, unit: &apos;HOURS&apos;) {
+            retry(5) {
+                sh &apos;./download-android&apos;
+            }
         }
     }
     stage(&apos;Download factory images&apos;) {
-        retry(2) {
-            sh &apos;./download-factory-android&apos;
+        timeout(time: 1, unit: &apos;HOURS&apos;) {
+            retry(2) {
+                sh &apos;./download-factory-android&apos;
+            }
         }
     }
     stage(&apos;Clean&apos;) {
@@ -189,10 +195,14 @@ node(&apos;copperhead&apos;) {
         ).trim() + &quot; of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
     }
     stage(&apos;Build&apos;) {
-        sh &apos;./build-android&apos;
+        timeout(time: 10, unit: &apos;HOURS&apos;) {
+            sh &apos;./build-android&apos;
+        }
     }
     stage(&apos;Release&apos;) {
-        sh &apos;./release-android&apos;
+        timeout(time: 1, unit: &apos;HOURS&apos;) {
+            sh &apos;./release-android&apos;
+        }
     }
     stage(&apos;Archive&apos;) {
         archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
