@@ -11,6 +11,14 @@ In addition to that, this executable recipe will automatically
 rekey F-Droid so F-Droid will have the ability to install applications
 as a trusted app store on your phone.  Quite excellent!
 
+This build recipe will also build periodically.  If a successful build
+has taken place in the past, the pipeline will exit early with a
+successful status, so you do not need to worry about wasting CPU,
+memory or disk space on repeat builds of the same thing.  The parameters
+used to determine whether a build should run to completion are evident
+from the pipeline script — check the script out if you want to know
+what decides whether a build continues or not.
+
 ## How to use it
 
 Install the Jenkins Pipeline plugin on your Jenkins instance.
