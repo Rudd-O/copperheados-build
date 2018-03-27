@@ -113,10 +113,10 @@
         env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
         // ANDROID_BUILD_SPEC is not used during the build process,
         // only to reason about whether a rebuild is needed.
-        env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;/&quot; + env.CHANNEL_NAME + &quot;/&quot; + env.BUILD_TYPE + &quot;/&quot; + env.BUILD_VARIANT + &quot;/&quot; + env.ANDROID_BUILD_TAG
-        env.LAST_ANDROID_BUILD_SPEC = sh(
+        env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
+        env.LAST_ANDROID_BUILD_TAG_FOR_SPEC = sh(
             script: &apos;&apos;&apos;#!/bin/bash
-            cat last-successful-android-build-spec 2&gt;/dev/null
+            cat last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
             exit 0
             &apos;&apos;&apos;,
             returnStdout: true
@@ -124,12 +124,12 @@
     }
 }
 
-if(&quot;${env.ANDROID_BUILD_SPEC}&quot; == &quot;${env.LAST_ANDROID_BUILD_SPEC}&quot;) {
+if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
     currentBuild.result = &apos;SUCCESS&apos;
-    println &quot;There is no need to rebuild ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
+    println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
     return
 } else {
-    println &quot;Last successful build spec ${env.LAST_ANDROID_BUILD_SPEC} differs from current build spec {$env.ANDROID_BUILD_SPEC}.  Continuing.&quot;
+    println &quot;Last successful build tag ${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for {$env.ANDROID_BUILD_SPEC} differs from current build spec {$env.ANDROID_BUILD_TAG}.  Continuing.&quot;
 }
 
 node(&apos;copperhead&apos;) {
@@ -191,7 +191,9 @@ node(&apos;copperhead&apos;) {
 
 node(&apos;master&apos;) {
     stage(&apos;Remember last build spec&apos;) {
-        sh &apos;echo &quot;$ANDROID_BUILD_SPEC&quot; &gt; last-successful-android-build-spec&apos;
+        sh &apos;&apos;&apos;#!/bin/bash
+        echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
+        &apos;&apos;&apos;
     }
 }
 </script>

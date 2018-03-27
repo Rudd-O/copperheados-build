@@ -12,7 +12,7 @@
 if [ -z "$ALREADY_BIND_MOUNTED" ] ; then
     mkdir -p "$BUILD_DIR" "$BUILD_DIR"/tmp
     sudo -E -- unshare -m -- bash -c '
-      set -ex
+      set -e
       builddir=$0
       user=$1
       script=$2
