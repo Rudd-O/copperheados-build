@@ -126,11 +126,12 @@
 
 if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
     currentBuild.result = &apos;SUCCESS&apos;
-    currentBuild.description = &apos;Build of {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC} skipped, as a prior build already succeeded.&apos;
-    println &quot;There is no need to rebuild {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
+    currentBuild.description = &quot;Skipped build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
+    println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
     return
 } else {
-    println &quot;Last successful build tag {$env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for {$env.ANDROID_BUILD_SPEC} differs from current build spec {$env.ANDROID_BUILD_TAG}.  Continuing.&quot;
+    currentBuild.description = &quot;Build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
+    println &quot;Last successful build tag ${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for ${env.ANDROID_BUILD_SPEC} differs from current build spec ${env.ANDROID_BUILD_TAG}.  Continuing.&quot;
 }
 
 node(&apos;copperhead&apos;) {
@@ -180,12 +181,12 @@ node(&apos;copperhead&apos;) {
         }
     }
     stage(&apos;Clean&apos;) {
-        currentBuild.description = currentBuild.description + String.format(&quot;%n&quot;) + sh(
+        currentBuild.description = sh(
             script: &apos;&apos;&apos;#!/bin/bash -e
             ./clean-android
             &apos;&apos;&apos;,
             returnStdout: true
-        )
+        ).trim() + &quot; of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
     }
     stage(&apos;Build&apos;) {
         sh &apos;./build-android&apos;
@@ -204,7 +205,6 @@ node(&apos;master&apos;) {
         echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
         &apos;&apos;&apos;
     }
-    currentBuild.description = &apos;Build of {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC} succeeded.&apos;
 }
 </script>
     <sandbox>true</sandbox>

@@ -16,10 +16,10 @@ this="$ANDROID_BUILD_SPEC-$ANDROID_BUILD_TAG"
 echo "$this" > this-build-inputs.txt
 old=$(cat last-build-inputs.txt || true)
 if [ "$this" != "$old" ] ; then
-    echo Full build: difference in release build inputs detected.
+    echo Full rebuild
     rm -rf "$BUILD_DIR"/src/out/
     mkdir -p "$BUILD_DIR"/src/out/
 else
-    echo Incremental rebuild: difference in release build inputs not detected.
+    echo Incremental build
 fi
 mv -f this-build-inputs.txt last-build-inputs.txt
