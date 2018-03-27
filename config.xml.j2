@@ -126,6 +126,7 @@
 
 if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
     currentBuild.result = &apos;SUCCESS&apos;
+    currentBuild.description = &apos;Build of {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC} skipped, as a prior build already succeeded.&apos;
     println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
     return
 } else {
@@ -203,6 +204,7 @@ node(&apos;master&apos;) {
         echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
         &apos;&apos;&apos;
     }
+    currentBuild.description = &apos;Build of {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC} succeeded.&apos;
 }
 </script>
     <sandbox>true</sandbox>
