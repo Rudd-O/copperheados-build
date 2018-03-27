@@ -44,6 +44,8 @@ following changes:
 3. Tune the rest of the parameters to your own liking, in particular the
    parameter for `NUM_CORES` to speed up the build if your build node
    has a lot of RAM and many cores.
+3. In the `<triggers>` section, adjust the trigger times you'd like the
+   build to run on.
 
 Now note the product name stored in the `PRODUCT_NAME` variable of the
 `config.xml` file.  We'll use this shortly.
