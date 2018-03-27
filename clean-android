@@ -1,0 +1,25 @@
+#!/bin/bash -e
+
+# VARIABLES:
+# BUILD_DIR=
+# ANDROID_BUILD_TAG=
+# ANDROID_BUILD_SPEC=
+
+# It is necessary to do a full rebuild when the parameters have changed
+# and those parameters are within the contents of $this.
+# It is conversely not necessary to do a full rebuild when the parameters
+# remain the same, but what is being retried is a prior temporarily-failed
+# build.  Thus we perform this comparison before the build, not using
+# values from after the build.
+
+this="$ANDROID_BUILD_SPEC-$ANDROID_BUILD_TAG"
+echo "$this" > this-build-inputs.txt
+old=$(cat last-build-inputs.txt || true)
+if [ "$this" != "$old" ] ; then
+    echo Full build: difference in release build inputs detected.
+    rm -rf "$BUILD_DIR"/src/out/
+    mkdir -p "$BUILD_DIR"/src/out/
+else
+    echo Incremental rebuild: difference in release build inputs not detected.
+fi
+mv -f this-build-inputs.txt last-build-inputs.txt

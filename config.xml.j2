@@ -178,6 +178,14 @@ node(&apos;copperhead&apos;) {
             sh &apos;./download-factory-android&apos;
         }
     }
+    stage(&apos;Clean&apos;) {
+        currentBuild.description = currentBuild.description + String.format(&quot;%n&quot;) + sh(
+            script: &apos;&apos;&apos;#!/bin/bash -e
+            ./clean-android
+            &apos;&apos;&apos;,
+            returnStdout: true
+        )
+    }
     stage(&apos;Build&apos;) {
         sh &apos;./build-android&apos;
     }

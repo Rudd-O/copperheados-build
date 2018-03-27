@@ -18,28 +18,7 @@ source "$DIR"/bind-mount-dirs-android
 echo ===Transferring keys to "$BUILD_DIR"/src/keys/=== >&2
 rsync -a keys/ "$BUILD_DIR"/src/keys/
 
-cd "$BUILD_DIR"
-
-# REBUILD FROM SCRATCH WHEN THE UPSTREAM BUILD DATE HAS CHANGED
-# THAT IS VARIABLE BUILD_TIME AT CONFIGURE TIME
-# MAYBE NOT?  LET US FINISH A BUILD LIKE THIS.  IF ITS BUILD NUMBER IS CORRECT
-# INSTEAD OF BEING 03.07.08, THEN MAYBE IT IS FINE.
-# VARIABLE ANDROID_BUILD_TAG ALREADY ENCOMPASSES BOTH.
-# I THINK IT IS NECESSARY TO DO A FULL REBUILD WHEN THAT CHANGES
-
-this="$ANDROID_BUILD_TAG"
-echo "$this" > this-build-inputs.txt
-old=$(cat last-build-inputs.txt || true)
-if [ "$this" != "$old" ] ; then
-    echo Difference in release build inputs detected, starting anew. >&2
-    rm -rf src/out/
-    mkdir -p src/out/
-else
-    echo Difference in release build inputs not detected, continuing. >&2
-fi
-mv -f this-build-inputs.txt last-build-inputs.txt
-
-cd src
+cd "$BUILD_DIR"/src
 
 source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
