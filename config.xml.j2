@@ -127,10 +127,10 @@
 if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
     currentBuild.result = &apos;SUCCESS&apos;
     currentBuild.description = &apos;Build of {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC} skipped, as a prior build already succeeded.&apos;
-    println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
+    println &quot;There is no need to rebuild {$env.ANDROID_BUILD_TAG} for {$env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
     return
 } else {
-    println &quot;Last successful build tag ${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for {$env.ANDROID_BUILD_SPEC} differs from current build spec {$env.ANDROID_BUILD_TAG}.  Continuing.&quot;
+    println &quot;Last successful build tag {$env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for {$env.ANDROID_BUILD_SPEC} differs from current build spec {$env.ANDROID_BUILD_TAG}.  Continuing.&quot;
 }
 
 node(&apos;copperhead&apos;) {
