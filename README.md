@@ -24,14 +24,25 @@ rename it afterwards, so it isn't named `copperheados-build`.
 Inside the newly-created directory, make a copy of the the `config.xml.j2`
 file and name it `config.xml`.
 
-Open the `config.xml` file and look for the string `{{`.  Substitute your
-preferred values for every instance of `{{ ... }}` that you find there.
-This will configure your build to act the way you want it to.
+Open the `config.xml` file in your favorite text editor and make the
+following changes:
+
+1. Find the `PRODUCT_NAME` parameter under `<parameterDefinitions>`,
+   then delete the line that says `{{ android_devices[0] | je }}` from
+   the list of parameters.  Now sort the list of parameters so that the
+   device you plan to build for most often is at the top.
+2. Change the values of the `GIT_USER_NAME` and `GIT_USER_EMAIL`
+   parameters to choices of your own.
+3. Tune the rest of the parameters to your own liking, in particular the
+   parameter for `NUM_CORES` to speed up the build if your build node
+   has a lot of RAM and many cores.
 
 Now note the product name stored in the `PRODUCT_NAME` variable of the
 `config.xml` file.  We'll use this shortly.
 
-Create the keys as per the build instructions — relevant snippet quoted here:
+Create the keys as per
+[the official CopperheadOS build instructions](https://copperhead.co/android/docs/building)
+ — relevant snippet for one product name quoted here:
 
 --------------------------------------------------------------------------
 
@@ -49,8 +60,9 @@ device variant / product name):
 
 --------------------------------------------------------------------------
 
-Place those keys in the `keys/<product name>` folder under the job directory
-you created below the Jenkins `jobs` folder.
+Place those keys in the `keys/<PRODUCT_NAME>` folder under the job directory
+you created below the Jenkins `jobs` folder.  You must create one set of
+keys per device.
 
 Ensure all files and folders under this job directory are owned by Jenkins
 and only readable by it.

@@ -1,14 +1,86 @@
-<?xml version='1.0' encoding='UTF-8'?>
-<flow-definition plugin="workflow-job@2.12.1">
+<?xml version='1.1' encoding='UTF-8'?>
+<flow-definition plugin="workflow-job@2.17">
   <actions/>
   <description>Builds CopperheadOS images.</description>
   <keepDependencies>false</keepDependencies>
   <properties>
+    <hudson.model.ParametersDefinitionProperty>
+      <parameterDefinitions>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>PRODUCT_NAME</name>
+          <description>Which model phone to build for.</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>{{ android.devices[0] | je }}</string>
+              <string>marlin (Pixel XL)</string>
+              <string>angler (Nexus 6P)</string>
+              <string>bullhead (Nexus 5X)</string>
+              <string>sailfish (Pixel)</string>
+              <string>taimen (Pixel 2 XL)</string>
+              <string>walleye (Pixel 2)</string>
+              <string>hikey (HiKey)</string>
+              <string>hikey960 (HiKey 960)</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>CHANNEL_NAME</name>
+          <description>Which channel to build from.</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>stable</string>
+              <string>canary</string>
+              <string>beta</string>
+              <string>dev</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>BUILD_TYPE</name>
+          <description>Choose between release and debug builds.</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>release</string>
+              <string>debug</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>BUILD_VARIANT</name>
+          <description>Choose which variant to build.</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>user</string>
+              <string>userdebug</string>
+              <string>eng</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>NUM_CORES</name>
+          <description>The number of CPU cores to use in parallel.</description>
+          <defaultValue>2</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>GIT_USER_NAME</name>
+          <description>The user name to configure Git with.</description>
+          <defaultValue>{{ android.git.user_name|je }}</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>GIT_USER_EMAIL</name>
+          <description>The e-mail address to configure Git with.</description>
+          <defaultValue>{{ android.git.user_email|je }}</defaultValue>
+          <trim>false</trim>
+        </hudson.model.StringParameterDefinition>
+      </parameterDefinitions>
+    </hudson.model.ParametersDefinitionProperty>
     <org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
       <triggers/>
     </org.jenkinsci.plugins.workflow.job.properties.PipelineTriggersJobProperty>
   </properties>
-  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.36">
+  <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.45">
     <script>node(&apos;master&apos;) {
     stage(&apos;Copy from master&apos;) {
         dir(&apos;..&apos;) {
@@ -17,6 +89,43 @@
             stash includes: &apos;keys/**&apos;, name: &quot;keys&quot;
         }
     }
+    stage(&apos;Configuration&apos;) {
+        env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
+        env.BUILD_ID = sh (
+            script: &apos;&apos;&apos;#!/bin/bash -e
+            data=$(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;)
+            echo &quot;Data retrieved from release API:&quot; &gt;&amp;2
+            echo &quot;$data&quot; &gt;&amp;2
+            read BUILD_TIME MEH BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $BUILD_ID
+            &apos;&apos;&apos;,
+            returnStdout: true
+        ).trim()
+        env.BUILD_TIME = sh (
+            script: &apos;&apos;&apos;#!/bin/bash -e
+            read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
+            &apos;&apos;&apos;,
+            returnStdout: true
+        ).trim()
+        env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
+        // ANDROID_BUILD_SPEC is not used during the build process,
+        // only to reason about whether a rebuild is needed.
+        env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;/&quot; + env.CHANNEL_NAME + &quot;/&quot; + env.BUILD_TYPE + &quot;/&quot; + env.BUILD_VARIANT + &quot;/&quot; + env.ANDROID_BUILD_TAG
+        env.LAST_ANDROID_BUILD_SPEC = sh(
+            script: &apos;&apos;&apos;#!/bin/bash
+            cat last-successful-android-build-spec 2&gt;/dev/null
+            exit 0
+            &apos;&apos;&apos;,
+            returnStdout: true
+        ).trim()
+    }
+}
+
+if(&quot;${env.ANDROID_BUILD_SPEC}&quot; == &quot;${env.LAST_ANDROID_BUILD_SPEC}&quot;) {
+    currentBuild.result = &apos;SUCCESS&apos;
+    println &quot;There is no need to rebuild ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
+    return
+} else {
+    println &quot;Last successful build spec ${env.LAST_ANDROID_BUILD_SPEC} differs from current build spec {$env.ANDROID_BUILD_SPEC}.  Continuing.&quot;
 }
 
 node(&apos;copperhead&apos;) {
@@ -31,33 +140,10 @@ node(&apos;copperhead&apos;) {
         rpm -q $packages || sudo dnf install --disablerepo=*qubes* -y $packages
         ./swapfile-android
         &apos;&apos;&apos;
-    }
-    stage(&apos;Configuration&apos;) {
-        env.PRODUCT_NAME = &apos;{{ android.devices[0] }}&apos;
-        env.CHANNEL_NAME = &apos;stable&apos;
-        env.BUILD_TYPE = &apos;release&apos; // release or debug
-        env.BUILD_VARIANT = &apos;user&apos; // user or userdebug or eng
-        env.GIT_USER_NAME = &apos;{{ android.git.user_name|je }}&apos;
-        env.GIT_USER_EMAIL = &apos;{{ android.git.user_email|je }}&apos;
-
-        env.NUM_CORES = &quot;4&quot;
 
         env.BUILD_DIR = env.WORKSPACE + &quot;/build&quot;
         env.GNUPGHOME = env.WORKSPACE + &quot;/gnupg&quot;
-        env.BUILD_ID = sh (
-            script: &apos;&apos;&apos;#!/bin/bash
-            read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_ID
-            &apos;&apos;&apos;,
-            returnStdout: true
-        ).trim()
-        env.BUILD_TIME = sh (
-            script: &apos;&apos;&apos;#!/bin/bash
-            read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
-            &apos;&apos;&apos;,
-            returnStdout: true
-        ).trim()
-        env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
-        
+
         // Configure GnuPG with the keys.
         sh &apos;&apos;&apos;#!/bin/bash -xe
         rm -rf &quot;$GNUPGHOME&quot;
@@ -76,7 +162,7 @@ node(&apos;copperhead&apos;) {
         &apos;&apos;&apos;
 
         // Make it possible to verify configuration by recording variables.
-        sh &quot;env&quot;
+        sh &quot;env | sort&quot;
     }
     stage(&apos;Download sources&apos;) {
         retry(5) {
@@ -96,6 +182,12 @@ node(&apos;copperhead&apos;) {
     }
     stage(&apos;Archive&apos;) {
         archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
+    }
+}
+
+node(&apos;master&apos;) {
+    stage(&apos;Remember last build spec&apos;) {
+        sh &apos;echo &quot;$ANDROID_BUILD_SPEC&quot; &gt; last-successful-android-build-spec&apos;
     }
 }
 </script>
