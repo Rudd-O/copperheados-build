@@ -15,6 +15,7 @@
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$DIR"/bind-mount-dirs-android
 
+echo ===Transferring keys to "$BUILD_DIR"/src/keys/=== >&2
 rsync -a keys/ "$BUILD_DIR"/src/keys/
 
 cd "$BUILD_DIR"
@@ -44,8 +45,10 @@ source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
 set -x
 
+echo ===Making generate_verity_key=== >&2
 make -j20 generate_verity_key
 
+echo ===Undergoing keying process=== >&2
 if [ "$PRODUCT_NAME" == "taimen" ] ; then
   pushd keys/"$PRODUCT_NAME"
   for key in avb.pem media.pk8 media.x509.pem platform.pk8 platform.x509.pem releasekey.pk8 releasekey.x509.pem shared.pk8 shared.x509.pem ; do
@@ -77,6 +80,7 @@ platformfp=$(
 keytool -list -printcert -file keys/"$PRODUCT_NAME"/platform.x509.pem | grep SHA256: | awk ' { print $2 } ' | sed 's/://g'
 )
 
+echo ===Adding this build release signing key to F-Droid=== >&2
 pushd packages/apps/F-Droid/privileged-extension
 git checkout app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
 sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate SHA-256 of https//f-droid.org/FDroid.apk\n            new Pair<>("org.fdroid.fdroid", "'$releasefp'"), // this build releasekey|g' app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
@@ -84,11 +88,14 @@ sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate
 popd
 # End rekey process.
 
+echo ===Making target files package=== >&2
 make target-files-package -j"$NUM_CORES"
 
 if [ "$PRODUCT_NAME" == "sailfish" -o "$PRODUCT_NAME" == "marlin" ] ; then
+  echo ===Making Brillo update payload=== >&2
   make -j20 brillo_update_payload
 fi
 if [[ $PRODUCT_NAME != hikey*  ]]; then
+  echo ===Making HiKey dumpkey=== >&2
   make -j20 dumpkey
 fi
