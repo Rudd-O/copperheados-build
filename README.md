@@ -41,10 +41,16 @@ following changes:
    device you plan to build for most often is at the top.
 2. Change the values of the `GIT_USER_NAME` and `GIT_USER_EMAIL`
    parameters to choices of your own.
-3. Tune the rest of the parameters to your own liking, in particular the
+3. Change the values of `RELEASE_UPLOAD_ADDRESS` and
+   `RELEASE_DOWNLOAD_ADDRESS` to suit your updates publishing needs.  Note
+   that _you are responsible_ for making sure your Jenkins master node
+   can SSH into the host named by `RELEASE_UPLOAD_ADDRESS` and can write
+   to the folder named by that variable.  See the documentation adjacent
+   to the variables themselves for more information.
+4. Tune the rest of the parameters to your own liking, in particular the
    parameter for `NUM_CORES` to speed up the build if your build node
    has a lot of RAM and many cores.
-3. In the `<triggers>` section, adjust the trigger times you'd like the
+5. In the `<triggers>` section, adjust the trigger times you'd like the
    build to run on.
 
 Now note the product name stored in the `PRODUCT_NAME` variable of the

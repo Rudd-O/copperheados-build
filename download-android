@@ -10,7 +10,7 @@
 # GIT_USER_EMAIL=    (email of packager)
 # GIT_USER_NAME=     (name of packager)
 # BUILD_DIR=         (where the builds happen)
-# ANDROID_BUILD_TAG= (BUILD_ID.BUILD_TIME)
+# ANDROID_BUILD_TAG= (ANDROID_BUILD_ID.ANDROID_BUILD_TIME)
 # GNUPGHOME=         (path to keyring directory where the already-imported keys reside)
 
 export DISPLAY=
@@ -32,6 +32,13 @@ cd src
 
 if test -d packages/apps/F-Droid/privileged-extension ; then
   pushd packages/apps/F-Droid/privileged-extension
+  git clean -fxd
+  git reset --hard HEAD
+  popd
+fi
+
+if test -d packages/apps/Updater ; then
+  pushd packages/apps/Updater
   git clean -fxd
   git reset --hard HEAD
   popd

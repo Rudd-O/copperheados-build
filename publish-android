@@ -1,0 +1,15 @@
+#!/bin/bash -xe
+
+# DEPENDS:
+# * rsync
+
+# VARIABLES:
+# BUILD_DIR=         (where the builds happen)
+# RELEASE_UPLOAD_ADDRESS=   (user@host:/path/to/folder for SSH copy)
+# CHANNEL_NAME=
+
+if [ -z "$CHANNEL_NAME" ] ; then exit ; fi
+if [ -z "$RELEASE_UPLOAD_ADDRESS" ] ; then exit ; fi
+
+cd builds/"$BUILD_NUMBER"/archive/build/src/out/
+rsync -a -- */* "$RELEASE_UPLOAD_ADDRESS"/

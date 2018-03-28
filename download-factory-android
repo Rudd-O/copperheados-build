@@ -7,7 +7,7 @@
 # VARIABLES:
 # BUILD_DIR=       (build directory)
 # PRODUCT_NAME=    (name of device)
-# BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
+# ANDROID_BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$DIR"/bind-mount-dirs-android
@@ -19,8 +19,8 @@ cd "$BUILD_DIR"/src
 if [[ $PRODUCT_NAME == hikey* ]]; then
   true
 else
-  bash -x vendor/android-prepare-vendor/execute-all.sh -d "$PRODUCT_NAME" -b "$BUILD_ID" -o vendor/android-prepare-vendor
-  lowerbuildid=$(echo "$BUILD_ID" | tr '[:upper:]' '[:lower:]')
+  bash -x vendor/android-prepare-vendor/execute-all.sh -d "$PRODUCT_NAME" -b "$ANDROID_BUILD_ID" -o vendor/android-prepare-vendor
+  lowerbuildid=$(echo "$ANDROID_BUILD_ID" | tr '[:upper:]' '[:lower:]')
   mkdir -p vendor/google_devices
   rsync -a --delete \
      vendor/android-prepare-vendor/"$PRODUCT_NAME"/"$lowerbuildid"/vendor/google_devices/"$PRODUCT_NAME"/ \

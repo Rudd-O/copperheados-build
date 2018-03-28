@@ -11,6 +11,7 @@
 # BUILD_VARIANT=      (user or userdebug or eng)
 # BUILD_TYPE=      (release or debug)
 # NUM_CORES=
+# RELEASE_DOWNLOAD_ADDRESS=
 
 DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
 source "$DIR"/bind-mount-dirs-android
@@ -66,6 +67,17 @@ sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate
 sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate SHA-256 of https//f-droid.org/FDroid.apk\n            new Pair<>("org.fdroid.fdroid", "'$platformfp'"), // this build platform|g' app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
 popd
 # End rekey process.
+
+if [ -n "$RELEASE_DOWNLOAD_ADDRESS" ] ; then
+    echo ===Adding the release server download address to the Updater app=== >&2
+    cat > ./packages/apps/Updater/res/values/config.xml << EOF
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="url" translatable="false">$RELEASE_DOWNLOAD_ADDRESS</string>
+    <string name="url_legacy" translatable="false">$RELEASE_DOWNLOAD_ADDRESS</string>
+</resources>
+EOF
+fi
 
 echo ===Making target files package=== >&2
 make target-files-package -j"$NUM_CORES"

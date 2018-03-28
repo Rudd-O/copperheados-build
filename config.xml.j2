@@ -25,7 +25,7 @@
         </hudson.model.ChoiceParameterDefinition>
         <hudson.model.ChoiceParameterDefinition>
           <name>CHANNEL_NAME</name>
-          <description>Which channel to build from.</description>
+          <description>Which channel to build from, and publish to.</description>
           <choices class="java.util.Arrays$ArrayList">
             <a class="string-array">
               <string>stable</string>
@@ -35,6 +35,18 @@
             </a>
           </choices>
         </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>RELEASE_UPLOAD_ADDRESS</name>
+          <description>The SSH address, in user@host:/path/to/folder format, to rsync artifacts to, in order to publish them.  Leave empty to skip publishing.</description>
+          <defaultValue>{{ android.publish.release_upload_address|je }}</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
+        <hudson.model.StringParameterDefinition>
+          <name>RELEASE_DOWNLOAD_ADDRESS</name>
+          <description>The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  Leave empty to use the default (upstream CopperheadOS), which will not work, and you'll have to sideload built OTA updates.</description>
+          <defaultValue>{{ android.publish.release_download_address|je }}</defaultValue>
+          <trim>true</trim>
+        </hudson.model.StringParameterDefinition>
         <hudson.model.ChoiceParameterDefinition>
           <name>BUILD_TYPE</name>
           <description>Choose between release and debug builds.</description>
@@ -97,22 +109,22 @@
         stage(&apos;Configuration&apos;) {
             timeout(time: 15, unit: &apos;MINUTES&apos;) {
                 env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
-                env.BUILD_ID = sh (
+                env.ANDROID_BUILD_ID = sh (
                     script: &apos;&apos;&apos;#!/bin/bash -e
                     data=$(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;)
                     echo &quot;Data retrieved from release API:&quot; &gt;&amp;2
                     echo &quot;$data&quot; &gt;&amp;2
-                    read BUILD_TIME MEH BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $BUILD_ID
+                    read ANDROID_BUILD_TIME MEH ANDROID_BUILD_ID &lt; &lt;(echo &quot;$data&quot;) &amp;&amp; echo $ANDROID_BUILD_ID
                     &apos;&apos;&apos;,
                     returnStdout: true
                 ).trim()
-                env.BUILD_TIME = sh (
+                env.ANDROID_BUILD_TIME = sh (
                     script: &apos;&apos;&apos;#!/bin/bash -e
-                    read BUILD_TIME MEH BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $BUILD_TIME
+                    read ANDROID_BUILD_TIME MEH ANDROID_BUILD_ID &lt; &lt;(curl https://release.copperhead.co/&quot;$PRODUCT_NAME&quot;-&quot;$CHANNEL_NAME&quot;) &amp;&amp; echo $ANDROID_BUILD_TIME
                     &apos;&apos;&apos;,
                     returnStdout: true
                 ).trim()
-                env.ANDROID_BUILD_TAG = env.BUILD_ID + &quot;.&quot; + env.BUILD_TIME
+                env.ANDROID_BUILD_TAG = env.ANDROID_BUILD_ID + &quot;.&quot; + env.ANDROID_BUILD_TIME
                 // ANDROID_BUILD_SPEC is not used during the build process,
                 // only to reason about whether a rebuild is needed.
                 env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
@@ -211,6 +223,13 @@
     }
 
     node(&apos;master&apos;) {
+        stage(&apos;Publish&apos;) {
+            dir(&apos;..&apos;) {
+                timeout(time: 15, unit: &apos;MINUTES&apos;) {
+                    sh &apos;./publish-android&apos;
+                }
+            }
+        }
         stage(&apos;Remember last build spec&apos;) {
             sh &apos;&apos;&apos;#!/bin/bash
             echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
