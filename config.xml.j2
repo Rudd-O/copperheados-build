@@ -43,7 +43,7 @@
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>RELEASE_DOWNLOAD_ADDRESS</name>
-          <description>The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  Leave empty to use the default (upstream CopperheadOS), which will not work, and you'll have to sideload built OTA updates.</description>
+          <description>The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  Leave empty to use the default (upstream CopperheadOS), which will not work, and you&apos;ll have to sideload built OTA updates.</description>
           <defaultValue>{{ android.publish.release_download_address|je }}</defaultValue>
           <trim>true</trim>
         </hudson.model.StringParameterDefinition>
@@ -130,7 +130,7 @@
                 env.ANDROID_BUILD_SPEC = env.PRODUCT_NAME + &quot;-&quot; + env.CHANNEL_NAME + &quot;-&quot; + env.BUILD_TYPE + &quot;-&quot; + env.BUILD_VARIANT
                 env.LAST_ANDROID_BUILD_TAG_FOR_SPEC = sh(
                     script: &apos;&apos;&apos;#!/bin/bash
-                    cat last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
+                    cat ../last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
                     exit 0
                     &apos;&apos;&apos;,
                     returnStdout: true
@@ -232,7 +232,7 @@
         }
         stage(&apos;Remember last build spec&apos;) {
             sh &apos;&apos;&apos;#!/bin/bash
-            echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
+            echo -n &quot;$ANDROID_BUILD_TAG&quot; &gt; ../last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot;
             &apos;&apos;&apos;
         }
         sh &apos;&apos;&apos;#!/bin/bash
