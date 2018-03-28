@@ -5,6 +5,8 @@
 # ANDROID_BUILD_TAG=
 # ANDROID_BUILD_SPEC=
 
+set -o pipefail
+
 # It is necessary to do a full rebuild when the parameters have changed
 # and those parameters are within the contents of $this.
 # It is conversely not necessary to do a full rebuild when the parameters
@@ -17,7 +19,17 @@ echo "$this" > this-build-inputs.txt
 old=$(cat last-build-inputs.txt || true)
 if [ "$this" != "$old" ] ; then
     echo Full rebuild
-    rm -rf "$BUILD_DIR"/src/out/
+    rm -rfv "$BUILD_DIR"/src/out/ | (
+        f=0
+        while read line
+        do
+            f=$(( $f + 1 ))
+            if [ $(( ($f -1) / 1000 )) != $(( ($f) / 1000 )) ]
+            then
+                echo "$f files removed; last deleted: $line" >&2
+            fi
+        done
+    )
     mkdir -p "$BUILD_DIR"/src/out/
 else
     echo Incremental build
