@@ -21,7 +21,7 @@ if [ "$this" != "$old" ] ; then
     echo Full rebuild
     rm -rfv "$BUILD_DIR"/src/out/ | (
         f=0
-        while read line
+        while read -r line
         do
             f=$(( $f + 1 ))
             if [ $(( ($f -1) / 1000 )) != $(( ($f) / 1000 )) ]
