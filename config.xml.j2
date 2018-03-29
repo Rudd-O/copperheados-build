@@ -174,8 +174,13 @@
             ./swapfile-android
             &apos;&apos;&apos;
 
-            env.BUILD_DIR = env.WORKSPACE + &quot;/build&quot;
             env.GNUPGHOME = env.WORKSPACE + &quot;/gnupg&quot;
+
+            // Create temporary directory and configure it as such.
+            sh &apos;&apos;&apos;#!/bin/bash -xe
+            mkdir -p tmp
+            &apos;&apos;&apos;
+            env.TMPDIR = env.WORKSPACE + &quot;/tmp&quot;
 
             // Configure GnuPG with the keys.
             sh &apos;&apos;&apos;#!/bin/bash -xe
@@ -207,7 +212,7 @@
         stage(&apos;Download factory images&apos;) {
             timeout(time: 1, unit: &apos;HOURS&apos;) {
                 retry(2) {
-                    sh &apos;TMPDIR=tmp ./bind-mount-dirs-android ./download-factory-android&apos;
+                    sh &apos;./bind-mount-dirs-android ./download-factory-android&apos;
                 }
             }
         }
@@ -221,12 +226,12 @@
         }
         stage(&apos;Build&apos;) {
             timeout(time: 10, unit: &apos;HOURS&apos;) {
-                sh &apos;TMPDIR=tmp ./bind-mount-dirs-android ./build-android&apos;
+                sh &apos;./bind-mount-dirs-android ./build-android&apos;
             }
         }
         stage(&apos;Release&apos;) {
             timeout(time: 1, unit: &apos;HOURS&apos;) {
-                sh &apos;TMPDIR=tmp ./bind-mount-dirs-android ./release-android&apos;
+                sh &apos;./bind-mount-dirs-android ./release-android&apos;
             }
         }
         stage(&apos;Archive&apos;) {
