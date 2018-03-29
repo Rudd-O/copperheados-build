@@ -30,7 +30,9 @@ mkdir -p ./tmp
 chown "$ENDUID"."$ENDGID" ./tmp
 chmod 0700 ./tmp
 mount --bind ./tmp "$TMPDIR"
-tmpd=$(mktemp -d "$TMPDIR"/build-$ENDUID-XXXXXXXXXXX)
+tmpd="$TMPDIR/build-android-$ENDUID"
+mkdir "$tmpd"
+chmod 0700 "$tmpd"
 chown "$ENDUID"."$ENDGID" "$tmpd"
 mount --bind "$PWD" "$tmpd"
 cd "$tmpd"
