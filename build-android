@@ -21,9 +21,6 @@ source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
 set -x
 
-echo ===Making generate_verity_key=== >&2
-make -j20 generate_verity_key
-
 echo ===Undergoing keying process=== >&2
 if [ "$PRODUCT_NAME" == "taimen" ] ; then
   pushd keys/"$PRODUCT_NAME"
@@ -44,6 +41,7 @@ else
     }
   done
   popd
+  make -j20 generate_verity_key
   out/host/linux-x86/bin/generate_verity_key -convert keys/"$PRODUCT_NAME"/verity.x509.pem keys/"$PRODUCT_NAME"/verity_key
   openssl x509 -outform der -in keys/"$PRODUCT_NAME"/verity.x509.pem -out kernel/google/"$PRODUCT_NAME"/verity_user.der.x509
 fi
