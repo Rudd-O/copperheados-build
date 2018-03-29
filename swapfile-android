@@ -10,7 +10,11 @@ SWAP_SIZE_MB=16384
 test -f swapfile || {
   echo "Making swapfile of $SWAP_SIZE_MB" >&2
   dd if=/dev/zero of=swapfile bs=1M count="$SWAP_SIZE_MB"
-  sudo mkswap swapfile
+  sudo mkswap swapfile || {
+      echo "Warning: sudo does not work, skipping swap file." >&2
+      rm -f swapfile
+      exit 0
+  }
 }
 sudo swapon -s | egrep -q '/swapfile\s+file' || {
   echo "Activating swapfile" >&2
