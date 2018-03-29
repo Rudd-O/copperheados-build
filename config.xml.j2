@@ -207,7 +207,7 @@
         stage(&apos;Download factory images&apos;) {
             timeout(time: 1, unit: &apos;HOURS&apos;) {
                 retry(2) {
-                    sh &apos;./bind-mount-dirs-android ./download-factory-android&apos;
+                    sh &apos;TMPDIR=tmp ./bind-mount-dirs-android ./download-factory-android&apos;
                 }
             }
         }
@@ -221,12 +221,12 @@
         }
         stage(&apos;Build&apos;) {
             timeout(time: 10, unit: &apos;HOURS&apos;) {
-                sh &apos;./bind-mount-dirs-android ./build-android&apos;
+                sh &apos;TMPDIR=tmp ./bind-mount-dirs-android ./build-android&apos;
             }
         }
         stage(&apos;Release&apos;) {
             timeout(time: 1, unit: &apos;HOURS&apos;) {
-                sh &apos;./bind-mount-dirs-android ./release-android&apos;
+                sh &apos;TMPDIR=tmp ./bind-mount-dirs-android ./release-android&apos;
             }
         }
         stage(&apos;Archive&apos;) {

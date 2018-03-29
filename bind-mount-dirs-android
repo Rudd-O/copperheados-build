@@ -16,29 +16,29 @@
 # PWD=    (build directory)
 
 export PATH=/usr/sbin:/sbin:/usr/bin:/bin
-export TMPDIR=/tmp
 [ -n "$1" ] || exit 0
 
-if [ $(id -u) != 0 ] ; then
+[ -n "$TMPDIR" ] && { export TMPDIR ; } || { export TMPDIR="/tmp" ; }
+
+if [ "$BINDMOUNT_PREINITIALIZED" != "true" ] ; then
     export ENDUSER=$(id -un)
+    export ENDTMPDIR=$(mktemp -d "$TMPDIR/build-android-$(id -un)-XXXXXXX")
+    mkdir -p "$ENDTMPDIR"
+    chmod 700 "$ENDTMPDIR"
+    mkdir -p "$ENDTMPDIR"/cwd
+    chmod 700 "$ENDTMPDIR"/cwd
+    export BINDMOUNT_PREINITIALIZED=true
     exec sudo -E -- "${BASH_SOURCE[0]}" "$@"
 fi
 
 exec unshare -m -- bash -ec '
-[ -n "$ENDUSER" ] || ENDUSER="$USER"
-ENDUID=$(id -u "$ENDUSER")
-ENDGID=$(id -g "$ENDUSER")
-echo Running "$@" under modified environment. >&2
-mountpoint -q "$TMPDIR" && umount "$TMPDIR" || true
-mkdir -p ./tmp
-chown "$ENDUID"."$ENDGID" ./tmp
-chmod 0700 ./tmp
-mount --bind ./tmp "$TMPDIR"
-tmpd="$TMPDIR/build-android-$ENDUID"
-mkdir "$tmpd"
-chmod 0700 "$tmpd"
-chown "$ENDUID"."$ENDGID" "$tmpd"
-mount --bind "$PWD" "$tmpd"
-cd "$tmpd"
+echo "=== Running $@ under modified environment ===" >&2
+echo "=== $ENDTMPDIR/tmp will be bind-mounted to /tmp ===" >&2
+echo "=== $PWD will be bind-mounted to $ENDTMPDIR/cwd and appear as /tmp/cwd ===" >&2
+echo "=== Will CD into $ENDTMPDIR/cwd, replacing $PWD as working directory ===" >&2
+mount --bind "$ENDTMPDIR" "/tmp"
+mount --bind "$PWD" "/tmp/cwd"
+export TMPDIR=/tmp
+cd "/tmp/cwd"
 exec runuser -p -u "$ENDUSER" -- "$@"
 ' -- "$@"
