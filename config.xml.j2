@@ -44,7 +44,7 @@
         </hudson.model.StringParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>RELEASE_DOWNLOAD_ADDRESS</name>
-          <description>The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  Leave empty to use the default (upstream CopperheadOS), which will not work, and you&apos;ll have to sideload built OTA updates.</description>
+          <description>The HTTP(s) address, in http://host/path/to/folder/ format (note ending slash), where the published artifacts are exposed for the Updater app to download.  This is baked into your built release for the Updater app to use.  Leave empty to use the default (upstream CopperheadOS), which will disable the Updater app, and you&apos;ll have to sideload built OTA updates.</description>
           <defaultValue>{{ android.publish.release_download_address|je }}</defaultValue>
           <trim>true</trim>
         </hudson.model.StringParameterDefinition>
@@ -133,6 +133,17 @@
                     script: &apos;&apos;&apos;#!/bin/bash
                     cat ../last-successful-android-build-spec-&quot;$ANDROID_BUILD_SPEC&quot; 2&gt;/dev/null
                     exit 0
+                    &apos;&apos;&apos;,
+                    returnStdout: true
+                ).trim()
+                env.OFFICIAL_BUILD = sh (
+                    script: &apos;&apos;&apos;#!/bin/bash -e
+                    if [ -n &quot;$RELEASE_DOWNLOAD_ADDRESS&quot; ]
+                    then
+                        echo true
+                    else
+                        echo false
+                    fi
                     &apos;&apos;&apos;,
                     returnStdout: true
                 ).trim()
