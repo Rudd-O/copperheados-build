@@ -18,10 +18,10 @@ choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
 set -x
 
 rm -rf out/release-*
-	bash -xe script/release.sh "$PRODUCT_NAME"
+bash -xe script/release.sh "$PRODUCT_NAME"
 
 # Create release channel metadata information.
 mv out/release-"$PRODUCT_NAME"-"$BUILD_NUMBER" out/release-"$ANDROID_BUILD_SPEC"-"$ANDROID_BUILD_TAG"
 NOW=$(date +'%s')
 VERSION=$(grep -Po "export BUILD_ID=\K.+" build/core/build_id.mk | tr '[:upper:]' '[:lower:]')
-echo "$BUILD_NUMBER $NOW $VERSION" > out/release-"$ANDROID_BUILD_SPEC"-"$ANDROID_BUILD_TAG"/"$PRODUCT_NAME-$CHANNEL_NAME"
+echo "$BUILD_NUMBER $NOW $ANDROID_BUILD_ID" > out/release-"$ANDROID_BUILD_SPEC"-"$ANDROID_BUILD_TAG"/"$PRODUCT_NAME-$CHANNEL_NAME"
