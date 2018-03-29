@@ -8,7 +8,7 @@
 # PRODUCT_NAME=
 # ANDROID_BUILD_SPEC=
 
-export OUT_DIR="$PWD/out"
+# export OUT_DIR="$PWD/out"
 
 cd src
 source script/copperhead.sh

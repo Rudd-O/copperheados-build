@@ -9,7 +9,7 @@
 # ANDROID_BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
 
 export DISPLAY=
-export OUT_DIR="$PWD/out"
+# export OUT_DIR="$PWD/out"
 
 # Obtain Google official images
 if [[ $PRODUCT_NAME == hikey* ]]; then
