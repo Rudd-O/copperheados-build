@@ -18,8 +18,8 @@ cd src
 ln -s ../keys keys
 
 echo ===Setting build number to upstream $ANDROID_BUILD_TIME plus local build number $BUILD_NUMBER=== >&2
-mkdir -p src/out
-echo "$ANDROID_BUILD_TIME.$BUILD_NUMBER" > src/out/build_number.txt
+mkdir -p out
+echo "$ANDROID_BUILD_TIME.$BUILD_NUMBER" > out/build_number.txt
 
 source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
