@@ -12,10 +12,10 @@
 # NUM_CORES=
 # RELEASE_DOWNLOAD_ADDRESS=
 
-echo ===Transferring keys/ to src/keys/=== >&2
-rsync -a keys/ src/keys/
-
+echo ===Mapping keys/ to src/keys/=== >&2
+rm -rf src/keys
 cd src
+ln -s ../keys keys
 
 source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
