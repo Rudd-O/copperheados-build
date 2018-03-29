@@ -47,14 +47,13 @@ else
 fi
 
 # Rekey Android F-Droid privileged extension with build keys.
+echo ===Adding this build release signing key to F-Droid=== >&2
 releasefp=$(
 keytool -list -printcert -file keys/"$PRODUCT_NAME"/releasekey.x509.pem | grep SHA256: | awk ' { print $2 } ' | sed 's/://g'
 )
 platformfp=$(
 keytool -list -printcert -file keys/"$PRODUCT_NAME"/platform.x509.pem | grep SHA256: | awk ' { print $2 } ' | sed 's/://g'
 )
-
-echo ===Adding this build release signing key to F-Droid=== >&2
 pushd packages/apps/F-Droid/privileged-extension
 git checkout app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
 sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate SHA-256 of https//f-droid.org/FDroid.apk\n            new Pair<>("org.fdroid.fdroid", "'$releasefp'"), // this build releasekey|g' app/src/main/java/org/fdroid/fdroid/privileged/ClientWhitelist.java
@@ -62,6 +61,7 @@ sed -i 's|// certificate SHA-256 of https//f-droid.org/FDroid.apk|// certificate
 popd
 # End rekey process.
 
+# Reconfigure updater to point to release server.
 if [ -n "$RELEASE_DOWNLOAD_ADDRESS" ] ; then
     echo ===Adding the release server download address to the Updater app=== >&2
     cat > ./packages/apps/Updater/res/values/config.xml << EOF
@@ -72,6 +72,7 @@ if [ -n "$RELEASE_DOWNLOAD_ADDRESS" ] ; then
 </resources>
 EOF
 fi
+# End reconfigure updater process.
 
 echo ===Making target files package=== >&2
 make target-files-package -j"$NUM_CORES"
