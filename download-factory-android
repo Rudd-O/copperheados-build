@@ -11,10 +11,14 @@
 export DISPLAY=
 
 # Obtain Google official images
-cd src
 if [[ $PRODUCT_NAME == hikey* ]]; then
   true
 else
+  if [ -f success-download-factory-android-"$ANDROID_BUILD_ID" ] ;
+    echo "Downloading of factory Android at $ANDROID_BUILD_ID already succeeded.  Skipping." >&2
+    exit 0
+  fi
+  pushd src
   bash -x vendor/android-prepare-vendor/execute-all.sh -d "$PRODUCT_NAME" -b "$ANDROID_BUILD_ID" -o vendor/android-prepare-vendor
   lowerbuildid=$(echo "$ANDROID_BUILD_ID" | tr '[:upper:]' '[:lower:]')
   mkdir -p vendor/google_devices
@@ -28,4 +32,6 @@ else
   fi
   # Clear out anything that was unpacked under android-prepare-vendor.
   rm -rf vendor/android-prepare-vendor/*/*/vendor*
+  popd
+  touch success-download-factory-android-"$ANDROID_BUILD_ID"
 fi
