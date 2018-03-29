@@ -5,17 +5,13 @@
 # * tr
 
 # VARIABLES:
-# BUILD_DIR=       (build directory)
 # PRODUCT_NAME=    (name of device)
 # ANDROID_BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
-
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source "$DIR"/bind-mount-dirs-android
 
 export DISPLAY=
 
 # Obtain Google official images
-cd "$BUILD_DIR"/src
+cd src
 if [[ $PRODUCT_NAME == hikey* ]]; then
   true
 else

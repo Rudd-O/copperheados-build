@@ -5,14 +5,10 @@
 # * util-linux
 
 # VARIABLES:
-# BUILD_DIR=    (where the builds happen)
 # PRODUCT_NAME=
 # ANDROID_BUILD_SPEC=
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source "$DIR"/bind-mount-dirs-android
-
-cd "$BUILD_DIR"/src
+cd src
 source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"
 set -x

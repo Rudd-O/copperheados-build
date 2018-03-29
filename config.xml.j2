@@ -196,7 +196,7 @@
         stage(&apos;Download factory images&apos;) {
             timeout(time: 1, unit: &apos;HOURS&apos;) {
                 retry(2) {
-                    sh &apos;./download-factory-android&apos;
+                    sh &apos;./bind-mount-dirs-android ./download-factory-android&apos;
                 }
             }
         }
@@ -210,16 +210,16 @@
         }
         stage(&apos;Build&apos;) {
             timeout(time: 10, unit: &apos;HOURS&apos;) {
-                sh &apos;./build-android&apos;
+                sh &apos;./bind-mount-dirs-android ./build-android&apos;
             }
         }
         stage(&apos;Release&apos;) {
             timeout(time: 1, unit: &apos;HOURS&apos;) {
-                sh &apos;./release-android&apos;
+                sh &apos;./bind-mount-dirs-android ./release-android&apos;
             }
         }
         stage(&apos;Archive&apos;) {
-            archiveArtifacts artifacts: &apos;build/src/out/release-*/**&apos;, fingerprint: true
+            archiveArtifacts artifacts: &apos;src/out/release-*/**&apos;, fingerprint: true
         }
     }
 

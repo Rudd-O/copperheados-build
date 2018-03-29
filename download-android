@@ -15,18 +15,14 @@
 
 export DISPLAY=
 
-# Create build dir.
-test -d "$BUILD_DIR" || mkdir -p "$BUILD_DIR"
-
 # Obtain and deploy repo.
-if ! test -f "$BUILD_DIR"/bin/repo ; then 
-  mkdir -p "$BUILD_DIR"/bin
-  curl https://storage.googleapis.com/git-repo-downloads/repo > "$BUILD_DIR"/bin/repo
-  chmod a+x "$BUILD_DIR"/bin/repo
+if ! test -f bin/repo ; then 
+  mkdir -p bin
+  curl https://storage.googleapis.com/git-repo-downloads/repo > bin/repo
+  chmod a+x bin/repo
 fi
-export PATH="$BUILD_DIR"/bin:"$PATH"
+export PATH="$PWD"/bin:"$PATH"
 
-cd "$BUILD_DIR"
 mkdir -p src
 cd src
 

@@ -29,6 +29,8 @@ Copy the directory containing this file, exactly as-is, into the Jenkins
 ends up at `/var/lib/jenkins/jobs/copperheados-build`.  If you'd like,
 rename it afterwards, so it isn't named `copperheados-build`.
 
+### Configuration of the master
+
 Inside the newly-created directory, make a copy of the the `config.xml.j2`
 file and name it `config.xml`.
 
@@ -52,6 +54,8 @@ following changes:
    has a lot of RAM and many cores.
 5. In the `<triggers>` section, adjust the trigger times you'd like the
    build to run on.
+
+### Signing keys generation (one-time-process)
 
 Now note the product name stored in the `PRODUCT_NAME` variable of the
 `config.xml` file.  We'll use this shortly.
@@ -78,15 +82,30 @@ device variant / product name):
 
 Place those keys in the `keys/<PRODUCT_NAME>` folder under the job directory
 you created below the Jenkins `jobs` folder.  You must create one set of
-keys per device.
+keys per device.  *Secure these keys* because if you lose them, you won't be
+able to create new flashable builds without unlocking and wiping your device.
 
-Ensure all files and folders under this job directory are owned by Jenkins
-and only readable by it.
+Ensure the keys under this job directory are readable only by the Jenkins user.
+
+### Build slave configuration
 
 Ensure your Jenkins instance has at least one build slave with 16 GB RAM
 and 200 GB disk space available.  Give that build slave the label `copperhead`.
 Alternatively, change the `node(copperhead)` snippet in `config.xml`
 to run it on any slave (see the Jenkins Pipeline reference documentation).
+
+The `sudo` configuration needs to be adjusted in your build slave so that
+the program `$WORKSPACE/bind-mount-dirs-android` (with its full path) can
+be executed via `sudo`.  The program in question will be copied at the start
+of the build from the master into the build slave, and it is used to wrap
+calls to `./download-factory-android`, `./build-android` and
+`./release-android` during various stages of the build.  This is needed to
+to mount the workspace directory into a temporary directory without spaces
+(otherwise the Android build fails), as well as mount a subdirectory of
+the workspace onto `/tmp` for larger disk space (useful in most systems
+where `/tmp` is a `tmpfs` with limited space and causes the build to break).
+
+### Finishing setup
 
 Restart or reload your Jenkins instance.
 

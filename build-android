@@ -6,20 +6,16 @@
 # *rsync
 
 # VARIABLES:
-# BUILD_DIR=    (where the builds happen)
 # PRODUCT_NAME=
 # BUILD_VARIANT=      (user or userdebug or eng)
 # BUILD_TYPE=      (release or debug)
 # NUM_CORES=
 # RELEASE_DOWNLOAD_ADDRESS=
 
-DIR="$( cd "$( dirname "${BASH_SOURCE[0]}" )" && pwd )"
-source "$DIR"/bind-mount-dirs-android
+echo ===Transferring keys/ to src/keys/=== >&2
+rsync -a keys/ src/keys/
 
-echo ===Transferring keys to "$BUILD_DIR"/src/keys/=== >&2
-rsync -a keys/ "$BUILD_DIR"/src/keys/
-
-cd "$BUILD_DIR"/src
+cd src
 
 source script/copperhead.sh
 choosecombo "$BUILD_TYPE" aosp_"$PRODUCT_NAME" "$BUILD_VARIANT"

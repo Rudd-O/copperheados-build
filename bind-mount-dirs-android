@@ -1,34 +1,36 @@
-#!/bin/bash
+#!/bin/bash -e
 
 # DEPENDS:
 # * mountpoint
 # * mount
 # * mkdir
+# * mktemp
 # * runuser
+# * sudo
 
 # VARIABLES:
-# BUILD_DIR=    (build directory)
+# PWD=    (build directory)
 
-if [ -z "$ALREADY_BIND_MOUNTED" ] ; then
-    mkdir -p "$BUILD_DIR" "$BUILD_DIR"/tmp
-    sudo -E -- unshare -m -- bash -c '
-      set -e
-      builddir=$0
-      user=$1
-      script=$2
-      shift
-      shift
-      mountpoint /tmp && umount /tmp || true
-      mount --bind "$builddir"/tmp /tmp
-      tmpd="/tmp/android-build-$USER"
-      mkdir -p "$tmpd"
-      mount --bind "$builddir" "$tmpd"
-      export BUILD_DIR="$tmpd"
-      export ALREADY_BIND_MOUNTED=true
-      exec runuser -p -u "$user" -- "$script" "$@"
-      ' "$BUILD_DIR" "$USER" "${BASH_SOURCE[1]}" "$@"
-    ret=$?
-    exit $ret
-fi 
+export PATH=/usr/sbin:/sbin:/usr/bin:/bin
+export TMPDIR=/tmp
+[ -n "$1" ] || exit 0
 
-mount
+if [ $(id -u) != 0 ] ; then
+    export ENDUSER=$(id -un)
+    exec sudo -E -- "${BASH_SOURCE[0]}" "$@"
+fi
+
+exec unshare -m -- bash -ec '
+[ -n "$ENDUSER" ] || ENDUSER="$USER"
+ENDUID=$(id -u "$ENDUSER")
+ENDGID=$(id -g "$ENDUSER")
+echo Running "$@" under modified environment. >&2
+mountpoint -q "$TMPDIR" && umount "$TMPDIR" || true
+mkdir -p ./tmp
+chown "$ENDUID"."$ENDGID" ./tmp
+mount --bind ./tmp "$TMPDIR"
+tmpd=$(mktemp -d "$TMPDIR"/build-$ENDUID-XXXXXXXXXXX)
+mount --bind "$PWD" "$tmpd"
+cd "$tmpd"
+exec runuser -p -u "$ENDUSER" -- "$@"
+' -- "$@"
