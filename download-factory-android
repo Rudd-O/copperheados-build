@@ -9,12 +9,13 @@
 # ANDROID_BUILD_ID=        (first portion of ANDROID_BUILD_TAG obtained from Copperhead builds feed)
 
 export DISPLAY=
+export OUT_DIR="$PWD/out"
 
 # Obtain Google official images
 if [[ $PRODUCT_NAME == hikey* ]]; then
   true
 else
-  if [ -f success-download-factory-android-"$ANDROID_BUILD_ID" ] ;
+  if [ -f success-download-factory-android-"$ANDROID_BUILD_ID" ] ; then
     echo "Downloading of factory Android at $ANDROID_BUILD_ID already succeeded.  Skipping." >&2
     exit 0
   fi
