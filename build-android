@@ -81,7 +81,7 @@ fi
 echo ===Making target files package=== >&2
 make target-files-package -j"$NUM_CORES"
 
-if [ "$PRODUCT_NAME" == "sailfish" -o "$PRODUCT_NAME" == "marlin" ] ; then
+if [ "$PRODUCT_NAME" == "sailfish" -o "$PRODUCT_NAME" == "marlin" -o "$PRODUCT_NAME" == "taimen" ] ; then
   echo ===Making Brillo update payload=== >&2
   make -j20 brillo_update_payload
 fi
