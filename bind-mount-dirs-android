@@ -28,8 +28,10 @@ echo Running "$@" under modified environment. >&2
 mountpoint -q "$TMPDIR" && umount "$TMPDIR" || true
 mkdir -p ./tmp
 chown "$ENDUID"."$ENDGID" ./tmp
+chmod 0700 ./tmp
 mount --bind ./tmp "$TMPDIR"
 tmpd=$(mktemp -d "$TMPDIR"/build-$ENDUID-XXXXXXXXXXX)
+chown "$ENDUID"."$ENDGID" "$tmpd"
 mount --bind "$PWD" "$tmpd"
 cd "$tmpd"
 exec runuser -p -u "$ENDUSER" -- "$@"
