@@ -8,6 +8,10 @@
 # * runuser
 # * sudo
 
+# FIXME: make it impossible for the script to create
+# directories where root has write access but the
+# calling user does not.
+
 # VARIABLES:
 # PWD=    (build directory)
 
