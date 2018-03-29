@@ -13,7 +13,7 @@
 # calling user does not.
 
 # VARIABLES:
-# PWD=    (build directory)
+# PWD=<gets remapped to /tmp/cwd and changed into prior to running the specified command>
 
 export PATH=/usr/sbin:/sbin:/usr/bin:/bin
 [ -n "$1" ] || exit 0

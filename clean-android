@@ -1,7 +1,7 @@
 #!/bin/bash -e
 
 # VARIABLES:
-# BUILD_DIR=
+# PWD=                (workspace dir, usually where the code is checked out)
 # ANDROID_BUILD_TAG=
 # ANDROID_BUILD_SPEC=
 

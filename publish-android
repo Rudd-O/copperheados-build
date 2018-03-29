@@ -4,7 +4,7 @@
 # * rsync
 
 # VARIABLES:
-# BUILD_DIR=         (where the builds happen)
+# PWD=                      (job directory, usually parent of workspace directory)
 # RELEASE_UPLOAD_ADDRESS=   (user@host:/path/to/folder for SSH copy)
 # CHANNEL_NAME=
 
