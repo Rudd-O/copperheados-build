@@ -69,6 +69,16 @@
             </a>
           </choices>
         </hudson.model.ChoiceParameterDefinition>
+        <hudson.model.ChoiceParameterDefinition>
+          <name>REBUILD_ALREADY_BUILT</name>
+          <description>If set to yes, the pipeline will unconditionally re-do an already-successful build.</description>
+          <choices class="java.util.Arrays$ArrayList">
+            <a class="string-array">
+              <string>no</string>
+              <string>yes</string>
+            </a>
+          </choices>
+        </hudson.model.ChoiceParameterDefinition>
         <hudson.model.StringParameterDefinition>
           <name>NUM_CORES</name>
           <description>The number of CPU cores to use in parallel.</description>
@@ -100,13 +110,6 @@
   <definition class="org.jenkinsci.plugins.workflow.cps.CpsFlowDefinition" plugin="workflow-cps@2.45">
     <script>try {
     node(&apos;master&apos;) {
-        stage(&apos;Copy from master&apos;) {
-            dir(&apos;..&apos;) {
-                stash includes: &apos;*-android&apos;, name: &quot;scripts&quot;
-                stash includes: &apos;gpgkeys/**&apos;, name: &quot;gpgkeys&quot;
-                stash includes: &apos;keys/**&apos;, name: &quot;keys&quot;
-            }
-        }
         stage(&apos;Configuration&apos;) {
             timeout(time: 15, unit: &apos;MINUTES&apos;) {
                 env.PRODUCT_NAME = env.PRODUCT_NAME.split(&quot; &quot;)[0]
@@ -151,8 +154,11 @@
         }
     }
 
-    if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
-        currentBuild.result = &apos;SUCCESS&apos;
+    if(&quot;${env.REBUILD_ALREADY_BUILT}&quot; == &quot;yes&quot;) {
+        currentBuild.description = &quot;Forced rebuild of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
+        println &quot;Forcing rebuild of ${env.ANDROID_BUILD_SPEC}.  Continuing.&quot;
+    } else if(&quot;${env.ANDROID_BUILD_TAG}&quot; == &quot;${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC}&quot;) {
+        currentBuild.result = &apos;NOT_BUILT&apos;
         currentBuild.description = &quot;Skipped build of ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.&quot;
         println &quot;There is no need to rebuild ${env.ANDROID_BUILD_TAG} for ${env.ANDROID_BUILD_SPEC}.  Exiting.&quot;
         return
@@ -161,6 +167,15 @@
         println &quot;Last successful build tag ${env.LAST_ANDROID_BUILD_TAG_FOR_SPEC} for ${env.ANDROID_BUILD_SPEC} differs from current build spec ${env.ANDROID_BUILD_TAG}.  Continuing.&quot;
     }
 
+    node(&apos;master&apos;) {
+        stage(&apos;Copy from master&apos;) {
+            dir(&apos;..&apos;) {
+                stash includes: &apos;*-android&apos;, name: &quot;scripts&quot;
+                stash includes: &apos;gpgkeys/**&apos;, name: &quot;gpgkeys&quot;
+                stash includes: &apos;keys/**&apos;, name: &quot;keys&quot;
+            }
+        }
+    }
     node(&apos;copperhead&apos;) {
         stage(&apos;Copy to slave&apos;) {
             unstash &quot;scripts&quot;
