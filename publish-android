@@ -11,5 +11,5 @@
 if [ -z "$CHANNEL_NAME" ] ; then exit ; fi
 if [ -z "$RELEASE_UPLOAD_ADDRESS" ] ; then exit ; fi
 
-cd builds/"$BUILD_NUMBER"/archive/out/
+cd builds/"$BUILD_NUMBER"/archive/src/out/
 rsync -a -- */* "$RELEASE_UPLOAD_ADDRESS"/
