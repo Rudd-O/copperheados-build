@@ -185,7 +185,10 @@
         stage(&apos;Preparation&apos;) {
             sh &apos;&apos;&apos;#!/bin/bash -e
             packages=&quot;glibc.i686 libstdc++.i686 ncurses-compat-libs java-1.8.0-openjdk-devel m4 gcc&quot;
-            rpm -q $packages || sudo dnf install --disablerepo=*qubes* -y $packages
+            rpm -q $packages || {
+              echo &quot;Warning: one or more packages of $packages missing, attempting sudo install.&quot; &gt;&amp;2
+              sudo dnf install --disablerepo=*qubes* -y $packages
+            }
             ./swapfile-android
             &apos;&apos;&apos;
 

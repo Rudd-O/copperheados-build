@@ -105,6 +105,13 @@ to mount the workspace directory into a temporary directory without spaces
 the workspace onto `/tmp` for larger disk space (useful in most systems
 where `/tmp` is a `tmpfs` with limited space and causes the build to break).
 
+Additionally, the *Preparation* stage of the build process will attempt to
+install several necessary packages at the very beginning, by using `dnf`
+with `sudo`.  This is bound to fail on your system, unless you first
+install the packages in question.  In case of failure, run the build and
+see the log of the *Preparation* stage -- then install the packages
+mentioned by the log.
+
 ### Finishing setup
 
 Restart or reload your Jenkins instance.
